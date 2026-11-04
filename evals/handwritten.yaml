@@ -1,0 +1,133 @@
+# Hand-written golden questions for apps/company_brain, merged into golden.jsonl by make_golden.
+#
+# Unlike the synthetic ones, these are phrased the way people actually ask, not echoing the
+# passage, so they are the honest check on full-text search. They also cover the planted moments
+# (apps/company_brain/README.md): both sides of each dated contradiction, ACL-restricted pages,
+# and questions the corpus cannot answer.
+#
+# relevant: chunks that answer the question, as {doc, contains}. `contains` picks the doc's
+# chunks whose text includes it (case-insensitive); leave it out to take every chunk of the doc.
+# They resolve to chunk ids when the golden set is built, so a chunker change that moves the
+# text fails loudly instead of silently invalidating the labels.
+#
+# kind: handwritten (answerable) | unanswerable (not in the corpus) | forbidden (in the corpus,
+# but not visible to as_user: retrieval must return nothing from forbidden_docs).
+
+- id: hw-pto-carryover
+  question: How many vacation days can I roll over into next year, and when do they expire?
+  as_user: finance@northwind.test
+  kind: handwritten
+  relevant:
+    - doc: local_files:northwind/handbook/pto-policy.md
+      contains: up to 5 unused days
+    - doc: local_files:northwind/announcements/2026-10-29-pto-carryover-change.md
+
+- id: hw-pr-approvals
+  question: How many approvals does my PR need, and am I allowed to ship on a Friday?
+  as_user: eng@northwind.test
+  kind: handwritten
+  relevant:
+    - doc: local_files:northwind/handbook/code-review-and-deploys.md
+    - doc: local_files:northwind/engineering/decisions/2026-10-30-review-and-friday-deploys.md
+      contains: fewer than 200 changed lines
+
+- id: hw-salary-bands
+  question: What's the pay range for a senior engineer?
+  as_user: hr@northwind.test
+  kind: handwritten
+  relevant:
+    - doc: local_files:northwind/hr/compensation-bands-2026.md
+      contains: Senior Software Engineer
+
+- id: hw-cloud-budget
+  question: How much have we set aside for AWS this quarter?
+  as_user: finance@northwind.test
+  kind: handwritten
+  relevant:
+    - doc: local_files:northwind/finance/q4-2026-budget.md
+
+- id: hw-migrations
+  question: Who should I talk to before adding an index to the orders table?
+  as_user: eng@northwind.test
+  kind: handwritten
+  relevant:
+    - doc: local_files:northwind/engineering/runbooks/postgres-migrations.md
+      contains: Sam Okafor
+    - doc: local_files:northwind/engineering/runbooks/postgres-migrations.md
+      contains: are hot
+
+- id: hw-oncall-handoff
+  question: What day does the on-call shift switch over now?
+  as_user: eng@northwind.test
+  kind: handwritten
+  relevant:
+    - doc: local_files:northwind/engineering/oncall-rotation.md
+      contains: hands off
+
+- id: hw-checkout-incident
+  question: Why was checkout so slow on Monday afternoon?
+  as_user: ceo@northwind.test
+  kind: handwritten
+  relevant:
+    - doc: local_files:northwind/engineering/postmortems/2026-11-02-checkout-latency.md
+      contains: added an index
+    - doc: local_files:northwind/engineering/postmortems/2026-11-02-checkout-latency.md
+      contains: runbook was updated
+
+- id: hw-starter-retention
+  question: Are Starter customers losing any of their historical data?
+  as_user: finance@northwind.test
+  kind: handwritten
+  relevant:
+    - doc: local_files:northwind/product/release-notes-pulse-3-4.md
+      contains: retention
+
+- id: hw-growth-price
+  question: What will the Growth plan cost next year?
+  as_user: finance@northwind.test
+  kind: handwritten
+  relevant:
+    - doc: local_files:northwind/finance/2027-pricing-change.md
+      contains: "$349"
+
+- id: hw-calibration-dates
+  question: When are the calibration meetings for this review cycle?
+  as_user: hr@northwind.test
+  kind: handwritten
+  relevant:
+    - doc: local_files:northwind/hr/h2-2026-performance-cycle.md
+      contains: calibration sessions
+
+- id: hw-home-office
+  question: How much can I spend on a desk and chair for working from home without asking?
+  as_user: eng@northwind.test
+  kind: handwritten
+  relevant:
+    - doc: local_files:northwind/finance/expense-policy.md
+
+- id: na-wifi
+  question: What's the wifi password at the Lisbon office?
+  as_user: eng@northwind.test
+  kind: unanswerable
+
+- id: na-kyoto-hotel
+  question: Which hotel is booked for the 2027 company offsite in Kyoto?
+  as_user: ceo@northwind.test
+  kind: unanswerable
+
+- id: na-salesforce-sla
+  question: What uptime SLA did we sign in our Salesforce contract?
+  as_user: finance@northwind.test
+  kind: unanswerable
+
+- id: acl-salary-bands-eng
+  question: What's the pay range for a senior engineer?
+  as_user: eng@northwind.test
+  kind: forbidden
+  forbidden_docs: [local_files:northwind/hr/compensation-bands-2026.md]
+
+- id: acl-cloud-budget-eng
+  question: How much have we set aside for AWS this quarter?
+  as_user: eng@northwind.test
+  kind: forbidden
+  forbidden_docs: [local_files:northwind/finance/q4-2026-budget.md]

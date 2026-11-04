@@ -1,0 +1,59 @@
+{
+  "golden_sha256": "30c8c4ff571f26f3",
+  "tolerance": 0.005,
+  "profiles": {
+    "offline": {
+      "dense": {
+        "config_hash": "cc63e0f9f9747ec4",
+        "recall@5": 0.5978,
+        "mrr": 0.4235,
+        "recall@10": 0.663,
+        "ndcg@10": 0.4776
+      },
+      "lexical": {
+        "config_hash": "3fb1a73d26484fef",
+        "recall@5": 0.5869,
+        "mrr": 0.4886,
+        "recall@10": 0.6195,
+        "ndcg@10": 0.5187
+      },
+      "hybrid": {
+        "config_hash": "3d7eaa68c0f08cc3",
+        "recall@5": 0.5434,
+        "mrr": 0.5266,
+        "recall@10": 0.6195,
+        "ndcg@10": 0.5422
+      }
+    },
+    "local": {
+      "dense": {
+        "config_hash": "87c18e5cb05cd9e2",
+        "recall@5": 0.9275,
+        "mrr": 0.8449,
+        "recall@10": 0.9565,
+        "ndcg@10": 0.8603
+      },
+      "lexical": {
+        "config_hash": "a24e67e74870384d",
+        "recall@5": 0.6992,
+        "mrr": 0.5475,
+        "recall@10": 0.8079,
+        "ndcg@10": 0.5933
+      },
+      "hybrid": {
+        "config_hash": "6b9141f5ed18a4eb",
+        "recall@5": 0.9275,
+        "mrr": 0.8086,
+        "recall@10": 0.9492,
+        "ndcg@10": 0.8253
+      },
+      "hybrid_rerank": {
+        "config_hash": "5cf0e15f6f28e1a6",
+        "recall@5": 0.9057,
+        "mrr": 0.9085,
+        "recall@10": 0.9565,
+        "ndcg@10": 0.9056
+      }
+    }
+  }
+}
