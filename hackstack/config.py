@@ -61,6 +61,8 @@ class StoreSettings(_Section):
 class ChunkSettings(_Section):
     size: int = 400  # tokens
     overlap: int = 0  # tokens; the research doc's range is 0-50
+    max_size: int = 512  # hard ceiling; only tables/code that fit stay whole
+    min_size: int = 50  # smaller chunks merge into a neighbour (no heading-only fragments)
 
 
 class EnrichSettings(_Section):

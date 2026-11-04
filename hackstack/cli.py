@@ -1,4 +1,4 @@
-"""The ``hackstack`` command. Later tickets add ``ask``, ``ingest`` and friends."""
+"""The ``hackstack`` command. Later tickets add ``ask`` and friends."""
 
 from __future__ import annotations
 
@@ -92,6 +92,67 @@ def reset(
         typer.echo(f"error: cannot reach Postgres ({first}). Is it running? `make up`", err=True)
         raise typer.Exit(code=2) from exc
     typer.echo(f"index reset for {target}; re-ingest to fill it")
+
+
+@app.command()
+def ingest(
+    file: FileOpt = None,
+    profile: ProfileOpt = None,
+    connector: Annotated[
+        list[str] | None,
+        typer.Option("--connector", "-c", help="Connector(s) to run (default: all configured)."),
+    ] = None,
+    path: Annotated[
+        str | None, typer.Option(help="Override the connector's path (local_files).")
+    ] = None,
+    dry_run: Annotated[
+        bool, typer.Option("--dry-run", help="Parse and chunk only: no embedding, no store.")
+    ] = False,
+    as_json: Annotated[bool, typer.Option("--json", help="Print the reports as JSON.")] = False,
+    apps_dir: AppsDirOpt = DEFAULT_APPS_DIR,
+) -> None:
+    """Ingest the active app's sources: connector -> sanitize -> parse -> chunk -> embed -> store.
+
+    Connector configs come from the app's ``app.yaml``, overridden by ``hackstack.yaml``. With no
+    app folder, ``hackstack.yaml``'s ``connectors:`` alone.
+    """
+    from hackstack.config import load_secrets
+    from hackstack.ingest import ingestor_from_settings
+
+    try:
+        settings = load_settings(file, profile=profile)
+        if (Path(apps_dir) / settings.app / "app.yaml").is_file():
+            configs = load_app(settings, apps_dir=apps_dir).connectors
+        else:
+            configs = dict(settings.connectors)
+        names = connector or list(configs) or ["local_files"]
+        secrets = {
+            k: (v.get_secret_value() if hasattr(v, "get_secret_value") else v)
+            for k, v in load_secrets().model_dump().items()
+            if v is not None
+        }
+        reports = [
+            ingestor_from_settings(
+                settings, name, secrets, cfg=configs.get(name), path=path, dry_run=dry_run
+            ).run()
+            for name in names
+        ]
+    except (KeyError, ValueError) as exc:
+        typer.echo(f"error: {exc.args[0] if exc.args else exc}", err=True)
+        raise typer.Exit(code=2) from exc
+
+    if as_json:
+        out = [r.model_dump(mode="json") for r in reports]
+        typer.echo(json.dumps(out[0] if len(out) == 1 else out, indent=2))
+        return
+    for r in reports:
+        mode = " (dry run)" if r.dry_run else ""
+        typer.echo(
+            f"{r.connector}{mode}: {r.docs} docs, {r.chunks} chunks, "
+            f"{len(r.failures)} failures in {r.seconds}s"
+        )
+        for f in r.failures:
+            typer.echo(f"  ! {f.item_id} [{f.stage}] {f.error_type}: {f.error}", err=True)
 
 
 if __name__ == "__main__":
