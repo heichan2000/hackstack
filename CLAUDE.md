@@ -4,6 +4,7 @@
 
 ## Dev loop
 
+- Setting up a new machine (e.g. the laptop): follow [`docs/setup-laptop.md`](docs/setup-laptop.md).
 - `make test` (offline; fakes in `tests/fakes.py`), `make lint` (ruff). `uv run hackstack config` prints the resolved settings + `config_hash()`.
 - Components register with `@register(kind, name)` (`hackstack/registry.py`) and are picked by name in `hackstack.yaml`; interfaces live in each package's `base.py`.
 
