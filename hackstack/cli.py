@@ -1,10 +1,10 @@
-"""The ``hackstack`` command. Later tickets add ``ask`` and friends."""
+"""The ``hackstack`` command: config, app, ingest, search, ask, reset."""
 
 from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Any
 
 import typer
 
@@ -253,6 +253,106 @@ def search(
         typer.echo(f"{i:2}. [{h.score:.3f}] {h.title} | {where} ({h.chunk_id}){extra}")
         snippet = " ".join(h.text.split())
         typer.echo(f"    {snippet[:200]}{'...' if len(snippet) > 200 else ''}")
+
+
+@app.command()
+def ask(
+    question: Annotated[str, typer.Argument(help="The question to answer.")],
+    as_user: Annotated[
+        str | None,
+        typer.Option(
+            "--as", help="Ask as this user from the app's users.yaml (default: its default_user)."
+        ),
+    ] = None,
+    mode: Annotated[
+        str | None,
+        typer.Option("--mode", "-m", help="agent | single_shot (default: agent.mode)."),
+    ] = None,
+    as_json: Annotated[
+        bool,
+        typer.Option(
+            "--json",
+            help="Print the full result (answer, citations, sources, tool calls, usage) as JSON.",
+        ),
+    ] = False,
+    file: FileOpt = None,
+    profile: ProfileOpt = None,
+    apps_dir: AppsDirOpt = DEFAULT_APPS_DIR,
+) -> None:
+    """Answer a question as a user, with citations: the agent loop over hybrid search."""
+    import asyncio
+    import sys
+
+    import psycopg
+
+    from hackstack.agent.loop import AgentDone, ToolEnd, ToolStart
+    from hackstack.agent.runtime import Agent
+    from hackstack.llm.base import LLMError
+    from hackstack.models import TextDelta
+    from hackstack.retrieval.acl import UnknownUserError
+    from hackstack.retrieval.rerank import RerankerUnavailable
+
+    for stream in (sys.stdout, sys.stderr):  # model text may not fit a legacy console codepage
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(errors="replace")
+    if mode not in (None, "agent", "single_shot"):
+        typer.echo(f"error: --mode must be agent or single_shot, got {mode!r}", err=True)
+        raise typer.Exit(code=2)
+
+    async def run() -> Any:
+        agent = Agent.from_settings(load_settings(file, profile=profile), apps_dir=apps_dir)
+        user = as_user or agent.default_user
+        if not user:
+            raise ValueError("no --as user and the app has no default_user")
+        result = None
+        async for event in agent.stream(question, user=user, mode=mode):
+            if as_json:
+                if isinstance(event, AgentDone):
+                    result = event.result
+                continue
+            if isinstance(event, TextDelta):
+                typer.echo(event.text, nl=False)
+            elif isinstance(event, ToolStart):
+                args = ", ".join(f"{k}={v!r}" for k, v in event.input.items())
+                typer.echo(f"\n[{event.name}({args})]", err=True)
+            elif isinstance(event, ToolEnd):
+                what = "error: " + event.summary if event.is_error else f"{event.results} passages"
+                typer.echo(f"  -> {what} in {event.seconds:.1f}s", err=True)
+            elif isinstance(event, AgentDone):
+                result = event.result
+        return user, result
+
+    try:
+        user, result = asyncio.run(run())
+    except (UnknownUserError, RerankerUnavailable, LLMError, ValueError, KeyError) as exc:
+        typer.echo(f"\nerror: {exc.args[0] if exc.args else exc}", err=True)
+        raise typer.Exit(code=2) from exc
+    except psycopg.OperationalError as exc:
+        first = str(exc).strip().splitlines()[0] if str(exc).strip() else type(exc).__name__
+        typer.echo(f"\nerror: cannot reach Postgres ({first}). Is it running? `make up`", err=True)
+        raise typer.Exit(code=2) from exc
+
+    if as_json:
+        typer.echo(json.dumps({"user": user, **result.model_dump(mode="json")}, indent=2))
+        return
+    typer.echo("")
+    cited = [s for s in result.sources if s.cited]
+    if cited:
+        typer.echo("\nSources:")
+        for s in cited:
+            typer.echo(f"  [{s.number}] {s.title}  ({s.chunk_id})")
+    if result.low_grounding:
+        typer.echo("\n! low grounding: the answer cites no sources", err=True)
+    if result.truncated:
+        typer.echo("! the answer was cut off (max_tokens)", err=True)
+    if result.refusal:
+        typer.echo(f"! refused: {result.refusal}", err=True)
+    typer.echo(
+        f"\n{user} | {result.mode}: {result.iterations} LLM calls, {len(result.tool_calls)} tool "
+        f"calls, {len(result.sources)} passages shown, stop {result.stop_reason}, "
+        f"{result.seconds:.1f}s",
+        err=True,
+    )
 
 
 if __name__ == "__main__":
