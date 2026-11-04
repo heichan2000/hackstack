@@ -50,12 +50,15 @@ class Passages:
     """Retrieved text, returned to the model as ``search_result`` blocks it can cite.
 
     ``skip_seen`` drops passages already shown earlier in the conversation (they cost context
-    and add nothing); ``empty`` is the plain-text result when nothing is left.
+    and add nothing); ``empty`` is the plain-text result when nothing is left. ``preamble`` is
+    plain text sent before the passages (an app tool's summary, e.g. a ranked list of people);
+    it is always sent, even when every passage was shown before.
     """
 
     hits: list[SearchHit]
     skip_seen: bool = True
     empty: str = "No results found."
+    preamble: str = ""
 
 
 ToolOutput = Passages | str | list[dict[str, Any]]

@@ -293,6 +293,52 @@ def test_lexical_with_only_stopwords_or_blank_returns_nothing(store):
     assert store.lexical("   ", ["public"], None, 5) == []
 
 
+# --- app-tool reads: doc_owners (find_experts), changed_since (whats_changed) ---------------
+
+
+def put_owned(store, doc_id, principals, owners, *, updated_at=T0, texts=("body",)):
+    raw = doc(doc_id, principals, updated_at=updated_at).model_copy(update={"owners": owners})
+    pairs = [(t, [1, 0, 0, 0]) for t in texts]
+    store.upsert(raw, chunks_for(raw, *pairs))
+
+
+def test_doc_owners_only_for_documents_the_principals_may_read(store):
+    put_owned(store, "runbook", ["group:eng"], ["sam@x.test"])
+    put_owned(store, "handbook", ["public"], ["priya@x.test", "sam@x.test"])
+    put_owned(store, "unowned", ["public"], [])
+    ids_ = ["runbook", "handbook", "unowned", "missing"]
+    assert store.doc_owners(ids_, ["public"]) == {
+        "handbook": ["priya@x.test", "sam@x.test"],
+        "unowned": [],
+    }
+    assert set(store.doc_owners(ids_, ["group:eng", "public"])) == {
+        "runbook",
+        "handbook",
+        "unowned",
+    }
+    assert store.doc_owners(ids_, []) == {}
+    assert store.doc_owners([], ["public"]) == {}
+
+
+def test_changed_since_lists_one_opening_passage_per_readable_doc_newest_first(store):
+    put_owned(store, "old", ["public"], [], updated_at=T0 - timedelta(days=9))
+    put_owned(store, "mid", ["public"], [], updated_at=T0, texts=("first", "second", "third"))
+    put_owned(store, "new", ["public"], [], updated_at=T0 + timedelta(days=1))
+    put_owned(store, "secret", ["group:hr"], [], updated_at=T0 + timedelta(days=2))
+    since = T0 - timedelta(days=1)
+    hits = store.changed_since(["public"], since)
+    assert ids(hits) == ["new#0", "mid#0"]
+    assert hits[1].text == "first" and hits[0].updated_at == T0 + timedelta(days=1)
+    assert ids(store.changed_since(["public", "group:hr"], since.date())) == [
+        "secret#0",
+        "new#0",
+        "mid#0",
+    ]
+    assert ids(store.changed_since(["public"], since, limit=1)) == ["new#0"]
+    assert store.changed_since(["public"], since, source="github") == []
+    assert store.changed_since([], since) == []
+
+
 def test_postgres_store_is_registered():
     from hackstack import registry
 

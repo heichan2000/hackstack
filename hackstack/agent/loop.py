@@ -210,10 +210,13 @@ def _to_result_content(
     """
     if isinstance(out, Passages):
         hits = [h for h in out.hits if not (out.skip_seen and registry.seen(h.chunk_id))]
+        lead = [{"type": "text", "text": out.preamble}] if out.preamble else []
         if not hits:
             empty = out.empty
             if out.hits:  # everything matched was shown before
                 empty = "No new results: every match was already shown above."
+            if lead:
+                return lead, 0, out.preamble[:120]
             return [{"type": "text", "text": empty}], 0, empty
         blocks = []
         for h in hits:
@@ -230,7 +233,7 @@ def _to_result_content(
                         url=h.url,
                     )
                 )
-        return blocks, len(blocks), "; ".join(b["title"] for b in blocks[:3])
+        return [*lead, *blocks], len(blocks), "; ".join(b["title"] for b in blocks[:3])
     if isinstance(out, str):
         return out, 0, out[:120]
     return list(out), 0, ""

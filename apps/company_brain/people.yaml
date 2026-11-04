@@ -1,0 +1,12 @@
+# Display names and job titles for the people who own Northwind documents (the `owners` emails in
+# the corpus's front matter). find_experts uses it to name people; anyone missing here is shown by
+# a name guessed from their email. It holds no access information: who may see which owner still
+# comes from the documents' ACLs.
+
+people:
+  sam.okafor@northwind.test: {name: Sam Okafor, title: "Staff Engineer, Data"}
+  tomas.silva@northwind.test: {name: Tomás Silva, title: Site Reliability Engineer}
+  priya.raman@northwind.test: {name: Priya Raman, title: "Engineering Manager, Platform"}
+  maria.santos@northwind.test: {name: Maria Santos, title: Head of People}
+  dan.whitaker@northwind.test: {name: Dan Whitaker, title: Head of Finance}
+  lena.fischer@northwind.test: {name: Lena Fischer, title: "Product Manager, Alerts"}

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import math
 import re
+from datetime import UTC, date, datetime
 from typing import Any
 
 from hackstack.models import Chunk, RawDoc, SearchHit
@@ -57,11 +58,36 @@ class InMemoryStore:
     def _visible(self, principals: list[str], filters: dict[str, Any] | None) -> list[Chunk]:
         allowed = set(principals)
         source = (filters or {}).get("source")
+        since = (filters or {}).get("since")
+        since_dt = _as_utc(since) if since is not None else None
         return [
             c
             for c in self.chunks.values()
-            if allowed & set(c.acl_principals) and (source is None or c.source == source)
+            if allowed & set(c.acl_principals)
+            and (source is None or c.source == source)
+            and (
+                since_dt is None or (c.updated_at is not None and _as_utc(c.updated_at) >= since_dt)
+            )
         ]
+
+    # --- app-tool reads (find_experts, whats_changed) -------------------------------------------
+
+    def doc_owners(self, doc_ids, principals) -> dict[str, list[str]]:
+        allowed = set(principals)
+        return {
+            d: list(self.docs[d].owners)
+            for d in doc_ids
+            if d in self.docs and allowed & set(self.docs[d].acl.principals)
+        }
+
+    def changed_since(self, principals, since, *, source=None, limit=20) -> list[SearchHit]:
+        first: dict[str, Chunk] = {}
+        for c in self._visible(principals, {"since": since, "source": source}):
+            if c.doc_id not in first or c.ordinal < first[c.doc_id].ordinal:
+                first[c.doc_id] = c
+        ordered = sorted(first.values(), key=lambda c: c.doc_id)
+        ordered.sort(key=lambda c: _as_utc(c.updated_at), reverse=True)
+        return self._hits([(0.0, c) for c in ordered[:limit]], limit, "changed")
 
     def dense(self, qvec, principals, filters, k) -> list[SearchHit]:
         scored = [(_cos(qvec, c.embedding or []), c) for c in self._visible(principals, filters)]
@@ -87,6 +113,7 @@ class InMemoryStore:
                 title=self.docs[c.doc_id].title,
                 source=c.source,
                 section_path=c.section_path,
+                updated_at=c.updated_at,
                 ordinal=c.ordinal,
                 retriever=retriever,
             )
@@ -103,6 +130,17 @@ class InMemoryStore:
         ]
         picked.sort(key=lambda c: (c.doc_id, c.ordinal))
         return self._hits([(0.0, c) for c in picked], len(picked), "neighbor")
+
+
+def _as_utc(value: datetime | date | str | None) -> datetime:
+    """Like the Postgres store's: dates are midnight UTC, naive datetimes are UTC."""
+    if value is None:
+        return datetime.min.replace(tzinfo=UTC)
+    if isinstance(value, str):
+        value = datetime.fromisoformat(value)
+    if not isinstance(value, datetime):
+        value = datetime(value.year, value.month, value.day)
+    return value if value.tzinfo else value.replace(tzinfo=UTC)
 
 
 def _cos(a: list[float], b: list[float]) -> float:

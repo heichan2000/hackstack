@@ -12,8 +12,26 @@ SaaS teams. Select it with `app: company_brain` in `hackstack.yaml` (the default
 | `sample_corpus/handbook/` | 17 PostHog handbook pages, playing Northwind's general handbook (MIT, see `THIRD_PARTY.md`) |
 | `sample_corpus/northwind/` | 13 hand-written Northwind documents with the planted moments below |
 | `demo-script.md` | The pitch and demo questions (stub until *Demo hardening*) |
+| `tools.py` | The app's own agent tools, `find_experts` and `whats_changed` (below) |
+| `people.yaml` | Names and job titles for document owners, used by `find_experts` |
 
-`tools.py` (`find_experts`, `whats_changed`) arrives with the *company_brain tools* ticket.
+## Tools
+
+Besides the kit's `search_kb` and `get_document`, the agent has two tools of its own. Both read
+only what the asker may read:
+
+- **`find_experts(topic)`** searches, then ranks the `owners` of the documents that came back.
+  Each document counts by how high it ranked (1/(rank+1) per passage) times how recent it is
+  (a 180-day half-life). It returns the ranked people, their titles and the documents they own,
+  plus one citable passage per document as evidence. Owners are looked up under the asker's
+  principals too, so a restricted document never surfaces its owner's name.
+- **`whats_changed(since, topic?)`** lists the documents updated on or after `since`, newest first,
+  with each one's opening passage, or runs a date-filtered search when a `topic` is given.
+  `since` is a date or a relative phrase as said ("monday", "yesterday", "this week").
+
+Dated conflicts are handled by the prompt: every passage title ends with "(updated
+YYYY-MM-DD)", and `prompts/system.md` asks for both dated sources and a recommendation of the
+newer one.
 
 ## Personas
 
@@ -79,8 +97,10 @@ Every Northwind document has `owners`:
 | `dan.whitaker@northwind.test` (Head of Finance) | Expense policy, Q4 budget, 2027 pricing |
 | `lena.fischer@northwind.test` (PM, Alerts) | Pulse 3.4 release notes, 2027 pricing |
 
-Ask: *"Who should I ask about database migrations?"* → Sam Okafor (two documents), then Tomás
-Silva. The migrations documents are engineering-only, so `finance@` gets no one.
+Ask: *"Who should I ask about database migrations?"* → as `eng@`, Sam Okafor (runbook and
+postmortem), then Tomás Silva and Priya Raman, whose code-review page and EDR-014 set the
+migration approval rules. The runbook and postmortem are engineering-only, so `finance@` never
+hears of Sam or Tomás: it gets only Priya, from the everyone-visible code-review documents.
 
 ### 5. ACL-restricted HR and finance pages
 

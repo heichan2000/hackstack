@@ -156,6 +156,27 @@ WHERE {where}
 ORDER BY c.doc_id, c.ordinal
 """
 
+# Owners of the given documents, only for documents the principals may read (find_experts).
+_OWNERS_SQL = """
+SELECT d.doc_id, d.owners
+FROM documents d
+WHERE d.doc_id = ANY(%(doc_ids)s) AND d.acl_principals && %(principals)s::text[]
+"""
+
+# One passage (the first chunk) per document updated on or after `since`, newest first
+# (whats_changed). The WHERE clause is the retrievers' own, so ACL and filters match search.
+_CHANGED_SQL = """
+SELECT * FROM (
+    SELECT DISTINCT ON (c.doc_id) {cols}, 0.0 AS score
+    FROM chunks c
+    JOIN documents d ON d.doc_id = c.doc_id
+    WHERE {where}
+    ORDER BY c.doc_id, c.ordinal
+) first_chunks
+ORDER BY updated_at DESC NULLS LAST, doc_id
+LIMIT %(limit)s
+"""
+
 _UPSERT_DOC_SQL = """
 INSERT INTO documents (doc_id, source, source_type, url, title, owners, created_at, updated_at,
                        parent_id, acl_principals, content_hash, extra)
@@ -488,6 +509,37 @@ class PostgresStore:
                 seen.add(r["chunk_id"])
                 out.append(_hit(r, "neighbor"))
         return out
+
+    def doc_owners(self, doc_ids: Sequence[str], principals: list[str]) -> dict[str, list[str]]:
+        """``doc_id -> owners`` for those of ``doc_ids`` the principals may read (fail closed)."""
+        if not principals or not doc_ids:
+            return {}
+        params = {"doc_ids": list(doc_ids), "principals": list(principals)}
+        with self._lock:
+            rows = self._ready_conn().execute(_OWNERS_SQL, params).fetchall()
+        return {r["doc_id"]: list(r["owners"] or []) for r in rows}
+
+    def changed_since(
+        self,
+        principals: list[str],
+        since: datetime | date | str,
+        *,
+        source: str | None = None,
+        limit: int = 20,
+    ) -> list[SearchHit]:
+        """The first passage of each readable document updated on or after ``since``, newest
+        first, under the same ACL and filters as the retrievers."""
+        where, params = filter_clause(principals, {"since": since, "source": source})
+        if not params["principals"] or limit <= 0:
+            return []
+        params["limit"] = limit
+        with self._lock:
+            rows = (
+                self._ready_conn()
+                .execute(_CHANGED_SQL.format(where=where, cols=_HIT_COLUMNS), params)
+                .fetchall()
+            )
+        return [_hit(r, "changed") for r in rows]
 
     # -- maintenance ---------------------------------------------------------------------------
 

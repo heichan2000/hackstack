@@ -28,7 +28,7 @@ from hackstack.config import Settings
 from hackstack.models import Principal
 
 DEFAULT_APPS_DIR = Path("apps")
-_PLACEHOLDER = re.compile(r"\{(app_title|user_name|user_role|today)\}")
+_PLACEHOLDER = re.compile(r"\{(app_title|user_name|user_role|today|weekday)\}")
 
 
 class Persona(BaseModel):
@@ -69,16 +69,19 @@ class App(BaseModel):
         return self.user(user_id).principal()
 
     def render_system_prompt(self, user_id: str, *, today: date | None = None) -> str:
-        """The system prompt with ``{app_title}``, ``{user_name}``, ``{user_role}``, ``{today}``.
+        """The system prompt with ``{app_title}``, ``{user_name}``, ``{user_role}``, ``{today}``
+        and ``{weekday}`` (today's day name, so "since Monday" can be turned into a date).
 
-        Only those four placeholders are replaced; any other braces are left as written.
+        Only those placeholders are replaced; any other braces are left as written.
         """
         persona = self.user(user_id)
+        day = today or date.today()
         values = {
             "app_title": self.title,
             "user_name": persona.name or persona.id,
             "user_role": persona.role or "employee",
-            "today": (today or date.today()).isoformat(),
+            "today": day.isoformat(),
+            "weekday": day.strftime("%A"),
         }
         return _PLACEHOLDER.sub(lambda m: values[m.group(1)], self.system_prompt)
 
