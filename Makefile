@@ -37,7 +37,11 @@ fmt:
 reset:
 	uv run hackstack reset
 
+## Ingest the active app's sample corpus (`app:` in hackstack.yaml); safe to re-run
+ingest-sample:
+	uv run hackstack ingest
+
 # --- not built yet: each lands with its own map ticket -----------------------------------
-ingest-sample dev eval mcp:
+dev eval mcp:
 	@echo make $@: not built yet - see the Hackstack v1 map, heichan2000/hackstack issue 1
 	@exit 1

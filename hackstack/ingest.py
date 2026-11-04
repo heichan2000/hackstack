@@ -86,8 +86,17 @@ class Ingestor:
                 self.store.upsert(item, chunks)
             report.docs += 1
             report.chunks += len(chunks)
+        analyze = getattr(self.store, "analyze", None)
+        if report.docs and callable(analyze):
+            analyze()  # a bulk load leaves planner statistics stale
         report.seconds = round(time.perf_counter() - started, 3)
         return report
+
+    def close(self) -> None:
+        """Release the store's connection, if it holds one."""
+        close = getattr(self.store, "close", None)
+        if callable(close):
+            close()
 
     def prepare(self, raw: RawDoc) -> list[Chunk] | ConnectorFailure:
         """Sanitize, parse and chunk one document; a failure is returned, not raised."""

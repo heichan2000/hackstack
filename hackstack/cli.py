@@ -144,10 +144,13 @@ def ingest(
             ingestor = ingestor_from_settings(
                 settings, name, secrets, cfg=configs.get(name), path=path, dry_run=dry_run
             )
-            if isinstance(ingestor.store, SyncStore):
-                reports.append(SyncManager(ingestor).run(full=full))
-            else:
-                reports.append(ingestor.run())
+            try:
+                if isinstance(ingestor.store, SyncStore):
+                    reports.append(SyncManager(ingestor).run(full=full))
+                else:
+                    reports.append(ingestor.run())
+            finally:
+                ingestor.close()
     except (KeyError, ValueError) as exc:
         typer.echo(f"error: {exc.args[0] if exc.args else exc}", err=True)
         raise typer.Exit(code=2) from exc
