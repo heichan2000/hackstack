@@ -23,7 +23,7 @@ chunk:
   overlap: 0                     # tokens, 0-50
 
 enrich:
-  contextual: false
+  contextual: false              # on: a 50-100 token blurb per chunk from llm.aux_model, re-ingests all docs
 
 retrieval:
   window: 50                     # candidates per retriever
@@ -72,6 +72,12 @@ profiles:
       dim: 1024
       base_url: http://localhost:11434
       query_instruction: Given a question, retrieve passages from company documents that answer it
+    enrich:
+      # Still off by default. On, the 16k-context hackstack-chat costs ~1.5 s per chunk on an
+      # RTX 3070 Laptop (docs/research/contextual-enrichment.md); docs over 8k tokens are
+      # situated section by section. Ollama serves one request at a time, so no concurrency.
+      max_doc_tokens: 8000
+      concurrency: 1
     rerank:
       provider: cross_encoder      # CPU, ~1.2 s per 30 candidates; needs `uv sync --extra rerank`
       model: cross-encoder/ms-marco-MiniLM-L6-v2   # set provider: noop to skip reranking

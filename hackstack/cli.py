@@ -172,6 +172,13 @@ def ingest(
                 f"{r.connector}{mode}: {r.docs} docs, {r.chunks} chunks, "
                 f"{len(r.failures)} failures in {r.seconds}s"
             )
+        if r.enrich is not None:
+            e = r.enrich
+            usage = ", ".join(f"{k}={v}" for k, v in sorted(e.usage.items())) or "no usage"
+            typer.echo(
+                f"  contextual enrichment: {e.enriched}/{e.chunks} chunks in {e.calls} calls, "
+                f"{e.failed} failed, {e.skipped} over budget, {e.seconds}s; {usage}"
+            )
         for f in r.failures:
             typer.echo(f"  ! {f.item_id} [{f.stage}] {f.error_type}: {f.error}", err=True)
 

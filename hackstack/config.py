@@ -72,7 +72,12 @@ class ChunkSettings(_Section):
 
 
 class EnrichSettings(_Section):
-    contextual: bool = False
+    contextual: bool = False  # contextual retrieval: a per-chunk blurb from the aux model
+    model: str | None = None  # default: llm.aux_model
+    max_doc_tokens: int = 50_000  # longer documents are situated section by section
+    max_context_tokens: int = 150  # cap on each blurb (the prompt asks for 50-100)
+    concurrency: int = 4  # parallel calls per document (Ollama serves one at a time anyway)
+    domain_hint: str | None = None  # one line about the company/domain for the prompt
 
 
 class RetrievalSettings(_Section):

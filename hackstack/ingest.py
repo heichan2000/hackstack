@@ -21,6 +21,7 @@ from pydantic import BaseModel, Field
 from hackstack.chunking.base import Chunker
 from hackstack.connectors.base import Connector, ConnectorFailure
 from hackstack.embed.base import Embedder
+from hackstack.enrich.contextual import ContextualEnricher, EnrichStats
 from hackstack.models import Chunk, RawDoc
 from hackstack.parsing.base import Parser
 from hackstack.parsing.sanitize import sanitize_content, sanitize_text
@@ -44,6 +45,8 @@ class IngestReport(BaseModel):
     failures: list[ConnectorFailure] = Field(default_factory=list)
     dry_run: bool = False
     seconds: float = 0.0
+    chunks_enriched: int = 0  # chunks given a contextual-retrieval blurb (enrich.contextual)
+    enrich: EnrichStats | None = None  # calls, failures, token usage; None when it is off
 
 
 class Ingestor:
@@ -55,15 +58,20 @@ class Ingestor:
         embedder: Embedder | None = None,
         store: Store | None = None,
         *,
+        enricher: ContextualEnricher | None = None,
         batch_size: int = 64,
     ) -> None:
         if (embedder is None) != (store is None):
             raise ValueError("pass both an embedder and a store, or neither (dry run)")
+        if enricher is not None and store is None:
+            raise ValueError("a dry run does not enrich: it would spend LLM calls for nothing")
         self.connector = connector
         self.parser = parser
         self.chunker = chunker
         self.embedder = embedder
         self.store = store
+        self.enricher = enricher
+        self.enrich_stats = EnrichStats()
         self.batch_size = batch_size
 
     @property
@@ -73,6 +81,7 @@ class Ingestor:
     def run(self) -> IngestReport:
         started = time.perf_counter()
         report = IngestReport(connector=self.connector.name, dry_run=self.dry_run)
+        self.enrich_stats = EnrichStats()
         for item in self.connector.load_all():
             if isinstance(item, ConnectorFailure):
                 report.failures.append(item)
@@ -89,8 +98,15 @@ class Ingestor:
         analyze = getattr(self.store, "analyze", None)
         if report.docs and callable(analyze):
             analyze()  # a bulk load leaves planner statistics stale
+        self.fill_enrich(report)
         report.seconds = round(time.perf_counter() - started, 3)
         return report
+
+    def fill_enrich(self, report: IngestReport) -> None:
+        """Copy this run's enrichment totals onto ``report``."""
+        if self.enricher is not None:
+            report.enrich = self.enrich_stats.model_copy(deep=True)
+            report.chunks_enriched = self.enrich_stats.enriched
 
     def close(self) -> None:
         """Release the store's connection, if it holds one."""
@@ -99,16 +115,23 @@ class Ingestor:
             close()
 
     def prepare(self, raw: RawDoc) -> list[Chunk] | ConnectorFailure:
-        """Sanitize, parse and chunk one document; a failure is returned, not raised."""
+        """Sanitize, parse, chunk and (if on) enrich one document.
+
+        A parse or chunk failure is returned, not raised. A failure of the enrichment LLM
+        itself raises, like the embedder's: it is infrastructure, not this document.
+        """
         stage = "parse"
         try:
             content = sanitize_content(raw.content, raw.mime)
             parsed = self.parser.parse(content, raw.mime)
             parsed = parsed.model_copy(update={"markdown": sanitize_text(parsed.markdown)})
             stage = "chunk"
-            return self.chunker.chunk(parsed, raw)
+            chunks = self.chunker.chunk(parsed, raw)
         except Exception as exc:
             return ConnectorFailure.from_exc(self.connector.name, raw.doc_id, exc, stage=stage)
+        if self.enricher is not None and chunks:
+            self.enrich_stats.add(self.enricher.enrich(raw, parsed, chunks))
+        return chunks
 
     def embed(self, chunks: list[Chunk]) -> None:
         """Set ``chunk.embedding`` on every chunk, in batches."""
@@ -175,14 +198,17 @@ def ingestor_from_settings(
     connector.configure(cfg, secrets or {})
     connector.validate()
 
-    embedder = store = None
+    embedder = store = enricher = None
     if not dry_run:
         embedder = build(EMBEDDER, settings.embed.provider, settings)
         store = build(STORE, settings.store.provider, settings)
+        if settings.enrich.contextual:
+            enricher = ContextualEnricher.from_settings(settings)
     return Ingestor(
         connector=connector,
         parser=build(PARSER, "router", settings),
         chunker=build(CHUNKER, "markdown", settings),
         embedder=embedder,
         store=store,
+        enricher=enricher,
     )

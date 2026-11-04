@@ -20,6 +20,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any, Literal, Protocol, runtime_checkable
 
 from hackstack.connectors.base import ConnectorFailure
+from hackstack.enrich.contextual import EnrichStats
 from hackstack.ingest import Ingestor, IngestReport
 from hackstack.models import Chunk, RawDoc
 from hackstack.store.base import Store
@@ -96,7 +97,7 @@ class SyncManager:
         self.ingestor = ingestor
         self.store: SyncStore = ingestor.store
         self.connector = ingestor.connector
-        self.pipeline = pipeline or str(getattr(ingestor.chunker, "version", ""))
+        self.pipeline = pipeline or _pipeline(ingestor)
         self.volatile = frozenset(getattr(self.connector, "volatile_extra", ()))
         self.now = now or (lambda: datetime.now(UTC))
         self.poll_overlap = poll_overlap
@@ -118,6 +119,7 @@ class SyncManager:
         list_ids = getattr(self.connector, "list_ids", None)
         mode = "poll" if since is not None and callable(poll) else "full"
         report = SyncReport(connector=name, mode=mode)
+        self.ingestor.enrich_stats = EnrichStats()
 
         stored = self.store.doc_hashes(name)
         seen: set[str] = set()
@@ -146,6 +148,7 @@ class SyncManager:
         if (report.docs or report.deleted) and callable(getattr(self.store, "analyze", None)):
             self.store.analyze()  # type: ignore[attr-defined]
         self.store.set_cursor(name, {"since": until.isoformat()})
+        self.ingestor.fill_enrich(report)
         report.seconds = round(time.perf_counter() - started, 3)
         return report
 
@@ -191,6 +194,19 @@ class SyncManager:
         self.store.upsert(raw, chunks, content_hash=h)
         report.docs += 1
         report.chunks += len(chunks)
+
+
+def _pipeline(ingestor: Ingestor) -> str:
+    """The parse/chunk/enrich settings that decide a document's chunks.
+
+    With enrichment off this is just the chunker's version, as before enrichment existed, so
+    an index built without it stays valid; turning it on, or changing its model, prompt or
+    budget, re-processes every document.
+    """
+    parts = [str(getattr(ingestor.chunker, "version", ""))]
+    if ingestor.enricher is not None:
+        parts.append(ingestor.enricher.fingerprint)
+    return "|".join(parts)
 
 
 def _item_id(item: RawDoc | ConnectorFailure) -> str:
