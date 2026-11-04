@@ -69,7 +69,6 @@ dev-api:
 dev-web:
 	npm --prefix web run dev
 
-# --- not built yet: each lands with its own map ticket -----------------------------------
+## Serve search_kb/get_document over stdio for Claude Desktop/Code (as $HACKSTACK_AS_USER)
 mcp:
-	@echo make $@: not built yet - see the Hackstack v1 map, heichan2000/hackstack issue 1
-	@exit 1
+	uv run python -m hackstack.mcp_server

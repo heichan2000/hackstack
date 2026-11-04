@@ -257,6 +257,13 @@ Results are saved with a hash of the config, and a regression test fails if reca
 }
 ```
 
+The server exposes `search_kb` and `get_document`, and answers as one user for its whole life: `HACKSTACK_AS_USER` (an `id` from the app's `users.yaml`), else the app's `default_user`. An unknown user stops it at startup. It speaks MCP protocol `2025-11-25` (Python SDK `mcp` 1.x) and logs the connecting client and its protocol version to stderr. Notes:
+
+- The config file is `%APPDATA%\Claude\claude_desktop_config.json` on Windows and `~/Library/Application Support/Claude/claude_desktop_config.json` on macOS. Restart Claude Desktop after editing it; its log for this server is `mcp-server-hackstack.log` in the same folder's `logs/`.
+- On Windows, write the path with forward slashes (`C:/Users/you/hackstack`). If Claude Desktop can't find `uv`, use its full path (`where uv`).
+- For the local Ollama setup, add `"HACKSTACK_PROFILE": "local"` to `env`: the server embeds queries with the profile's embedder, so it must match the one that built the index.
+- Claude Code: `claude mcp add hackstack -e HACKSTACK_AS_USER=you@company.test -- uv --directory /path/to/hackstack run python -m hackstack.mcp_server`.
+
 **As a client.** List external MCP servers in `hackstack.yaml`. Their tools are registered under prefixed names, such as `github__search_issues`.
 
 ## Learn the internals
