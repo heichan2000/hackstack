@@ -155,8 +155,14 @@ class CitationEvent(BaseModel):
 
 class Stop(BaseModel):
     type: Literal["stop"] = "stop"
-    reason: str = "end_turn"  # end_turn | tool_use | max_tokens | refusal | ...
+    # end_turn | tool_use | max_tokens | stop_sequence | pause_turn | refusal
+    # | model_context_window_exceeded
+    reason: str = "end_turn"
     usage: dict[str, int] = Field(default_factory=dict)
+    # The assistant turn's content blocks in Messages shape (text with citations, tool_use,
+    # thinking ...). The agent appends ``{"role": "assistant", "content": content}`` unchanged.
+    content: list[dict[str, Any]] = Field(default_factory=list)
+    details: dict[str, Any] | None = None  # refusal stop_details: {"category", "explanation"}
 
 
 LLMEvent = Annotated[TextDelta | ToolCall | CitationEvent | Stop, Field(discriminator="type")]

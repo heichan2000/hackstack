@@ -44,6 +44,9 @@ class LLMSettings(_Section):
     answer_model: str = "claude-sonnet-5-5"
     aux_model: str = "claude-haiku-5-5"  # helper tasks: enrichment, judges, query rewrite
     base_url: str | None = None  # OpenAI-compatible endpoints (Ollama, vLLM, Groq, ...)
+    # OpenAI-compatible: sent as `reasoning_effort` ("none" turns Ollama thinking off).
+    # Anthropic: low | medium | high | xhigh | max -> output_config.effort.
+    reasoning_effort: str | None = None
 
 
 class EmbedSettings(_Section):

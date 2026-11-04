@@ -6,6 +6,7 @@ readme = "README.md"
 license = "MIT"
 requires-python = ">=3.11"
 dependencies = [
+    "anthropic>=1",
     "beautifulsoup4>=4.15.0",
     "httpx>=0.28.1",
     "markitdown[docx]>=0.1.9",
@@ -46,7 +47,7 @@ testpaths = ["tests"]
 addopts = "-q"
 markers = [
     "pg: needs Postgres (make up); skipped when it is not reachable",
-    "ollama: needs Ollama with qwen3-embedding:0.6b pulled; skipped when it is not reachable",
+    "ollama: needs the local Ollama and its models (make ollama-models); skipped when absent",
     "hf_model: needs the rerank extra and the cross-encoder weights; skipped when absent",
 ]
 

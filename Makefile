@@ -2,10 +2,10 @@
 # Pick a profile per command: HACKSTACK_PROFILE=local make ingest-sample
 # Phoenix tracing: COMPOSE_PROFILES=tracing make up
 
-.PHONY: help setup up down ingest-sample dev test lint fmt eval mcp reset
+.PHONY: help setup ollama-models up down ingest-sample dev test lint fmt eval mcp reset
 
 help:
-	@echo "setup up down ingest-sample dev test lint fmt eval mcp reset  (see README: Make targets)"
+	@echo "setup ollama-models up down ingest-sample dev test lint fmt eval mcp reset  (see README: Make targets)"
 
 ## Install Python (uv) and web (npm) dependencies; the rerank extra is the local cross-encoder
 setup:
@@ -13,6 +13,12 @@ setup:
 ifneq ($(wildcard web/package.json),)
 	npm --prefix web install
 endif
+
+## Local profile: pull the Ollama models and build hackstack-chat (qwen3.5:4b at a 16k context)
+ollama-models:
+	ollama pull qwen3.5:4b
+	ollama pull qwen3-embedding:0.6b
+	ollama create hackstack-chat -f ollama/hackstack-chat.Modelfile
 
 ## Start / stop Postgres (and Phoenix with COMPOSE_PROFILES=tracing)
 up:

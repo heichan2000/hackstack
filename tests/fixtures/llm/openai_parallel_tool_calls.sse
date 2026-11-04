@@ -1,0 +1,10 @@
+data: {"id":"chatcmpl-511","object":"chat.completion.chunk","created":1793780165,"model":"hackstack-chat","system_fingerprint":"fp_ollama","choices":[{"index":0,"delta":{"role":"assistant","content":"","tool_calls":[{"id":"call_0qe023ig","index":0,"type":"function","function":{"name":"search_kb","arguments":"{\"query\":\"PTO carryover policy\"}"}}]},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-511","object":"chat.completion.chunk","created":1793780165,"model":"hackstack-chat","system_fingerprint":"fp_ollama","choices":[{"index":0,"delta":{"content":"","tool_calls":[{"id":"call_h5ycv3yi","index":1,"type":"function","function":{"name":"find_experts","arguments":"{\"topic\":\"PTO carryover policy\"}"}}]},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-511","object":"chat.completion.chunk","created":1793780165,"model":"hackstack-chat","system_fingerprint":"fp_ollama","choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}]}
+
+data: {"id":"chatcmpl-511","object":"chat.completion.chunk","created":1793780165,"model":"hackstack-chat","system_fingerprint":"fp_ollama","choices":[],"usage":{"prompt_tokens":383,"prompt_tokens_details":{"cached_tokens":0},"completion_tokens":60,"total_tokens":443},"timings":{"prompt_n":383,"prompt_ms":205,"prompt_per_token_ms":0.5352480417754569,"prompt_per_second":1868.2926829268292,"predicted_n":60,"predicted_ms":700,"predicted_per_token_ms":11.666666666666666,"predicted_per_second":85.71428571428571}}
+
+data: [DONE]
+

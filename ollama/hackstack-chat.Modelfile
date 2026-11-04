@@ -1,0 +1,6 @@
+# The local profile's chat model: qwen3.5:4b with a 16k context window.
+# Ollama's OpenAI-compatible API cannot set num_ctx per request (its default is 4k, too small for
+# the agent), so the context length lives here. Built by `make ollama-models`.
+# Why this model: docs/research/local-models.md
+FROM qwen3.5:4b
+PARAMETER num_ctx 16384

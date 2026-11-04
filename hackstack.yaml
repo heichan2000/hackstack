@@ -55,8 +55,11 @@ profiles:
     llm:
       provider: openai_compat
       base_url: http://localhost:11434/v1
-      answer_model: qwen3:8b       # placeholder until the "Pick local models" ticket decides
-      aux_model: qwen3:8b
+      # qwen3.5:4b + a 16k context, built by `make ollama-models` (ollama/hackstack-chat.Modelfile).
+      # Why: docs/research/local-models.md. Fallback: qwen3:4b-instruct-2507-q4_K_M
+      answer_model: hackstack-chat
+      aux_model: hackstack-chat
+      reasoning_effort: none       # thinking off: ~30% faster, no loss on the tool-call test
     embed:
       provider: ollama
       model: qwen3-embedding:0.6b

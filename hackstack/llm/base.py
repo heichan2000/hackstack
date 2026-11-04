@@ -6,6 +6,10 @@ from typing import Any, Protocol, runtime_checkable
 from hackstack.models import LLMEvent
 
 
+class LLMError(RuntimeError):
+    """A provider call failed (HTTP error, unreachable server, unknown model ...)."""
+
+
 @runtime_checkable
 class LLMProvider(Protocol):
     """Register implementations with ``@register("llm", "<name>")``.
