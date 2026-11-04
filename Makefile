@@ -53,9 +53,10 @@ reset:
 ingest-sample:
 	uv run hackstack ingest
 
-## Compare dense / lexical / hybrid / hybrid+rerank on evals/golden.jsonl; fails below baseline
+## Evals: retrieval comparison gated on baseline.json. FULL=1 adds contextual enrichment on/off
+## and generation (agent vs single-shot, PASS/FAIL judges, refusals, red team); see evals/README.md
 eval:
-	uv run python -m evals.run_retrieval --check
+	uv run python -m evals.suite $(if $(FULL),--full,) $(EVAL_ARGS)
 
 ## Regenerate evals/golden.jsonl from the corpus with the aux LLM (then review it, re-baseline)
 golden:

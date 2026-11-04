@@ -1,0 +1,66 @@
+{"id": "look-029", "mode": "single_shot", "judge": "faithfulness", "label": true, "note": "", "by": "claude-opus-5-5, reading each answer against the passages it was shown (not a human)"}
+{"id": "syn-033", "mode": "single_shot", "judge": "faithfulness", "label": true, "note": "", "by": "claude-opus-5-5, reading each answer against the passages it was shown (not a human)"}
+{"id": "hw-migrations", "mode": "agent", "judge": "faithfulness", "label": true, "note": "", "by": "claude-opus-5-5, reading each answer against the passages it was shown (not a human)"}
+{"id": "syn-003", "mode": "single_shot", "judge": "faithfulness", "label": true, "note": "June 30 comes from the newer announcement [4]", "by": "claude-opus-5-5, reading each answer against the passages it was shown (not a human)"}
+{"id": "hw-migrations", "mode": "single_shot", "judge": "faithfulness", "label": true, "note": "", "by": "claude-opus-5-5, reading each answer against the passages it was shown (not a human)"}
+{"id": "hw-checkout-incident", "mode": "single_shot", "judge": "faithfulness", "label": true, "note": "", "by": "claude-opus-5-5, reading each answer against the passages it was shown (not a human)"}
+{"id": "syn-025", "mode": "agent", "judge": "faithfulness", "label": false, "note": "calls U 'unsigned' (passage: signed with an unknown key) and gives `git commit --amend -S` as the new test commit", "by": "claude-opus-5-5, reading each answer against the passages it was shown (not a human)"}
+{"id": "syn-030", "mode": "agent", "judge": "faithfulness", "label": true, "note": "", "by": "claude-opus-5-5, reading each answer against the passages it was shown (not a human)"}
+{"id": "syn-011", "mode": "agent", "judge": "faithfulness", "label": true, "note": "", "by": "claude-opus-5-5, reading each answer against the passages it was shown (not a human)"}
+{"id": "look-014", "mode": "agent", "judge": "faithfulness", "label": true, "note": "", "by": "claude-opus-5-5, reading each answer against the passages it was shown (not a human)"}
+{"id": "look-009", "mode": "agent", "judge": "faithfulness", "label": true, "note": "", "by": "claude-opus-5-5, reading each answer against the passages it was shown (not a human)"}
+{"id": "syn-019", "mode": "single_shot", "judge": "faithfulness", "label": false, "note": "says the owner expects context rather than rebuilding the change; the passage says the owning team may close the PR and build it their own way", "by": "claude-opus-5-5, reading each answer against the passages it was shown (not a human)"}
+{"id": "syn-016", "mode": "agent", "judge": "faithfulness", "label": true, "note": "", "by": "claude-opus-5-5, reading each answer against the passages it was shown (not a human)"}
+{"id": "look-021", "mode": "single_shot", "judge": "faithfulness", "label": true, "note": "", "by": "claude-opus-5-5, reading each answer against the passages it was shown (not a human)"}
+{"id": "syn-001", "mode": "agent", "judge": "faithfulness", "label": true, "note": "", "by": "claude-opus-5-5, reading each answer against the passages it was shown (not a human)"}
+{"id": "look-028", "mode": "agent", "judge": "faithfulness", "label": true, "note": "", "by": "claude-opus-5-5, reading each answer against the passages it was shown (not a human)"}
+{"id": "syn-027", "mode": "single_shot", "judge": "faithfulness", "label": true, "note": "", "by": "claude-opus-5-5, reading each answer against the passages it was shown (not a human)"}
+{"id": "hw-calibration-dates", "mode": "agent", "judge": "faithfulness", "label": true, "note": "", "by": "claude-opus-5-5, reading each answer against the passages it was shown (not a human)"}
+{"id": "syn-013", "mode": "single_shot", "judge": "faithfulness", "label": true, "note": "", "by": "claude-opus-5-5, reading each answer against the passages it was shown (not a human)"}
+{"id": "syn-021", "mode": "agent", "judge": "faithfulness", "label": true, "note": "'no specific frequency limit' is an inference from absence", "by": "claude-opus-5-5, reading each answer against the passages it was shown (not a human)"}
+{"id": "look-028", "mode": "single_shot", "judge": "faithfulness", "label": true, "note": "", "by": "claude-opus-5-5, reading each answer against the passages it was shown (not a human)"}
+{"id": "look-014", "mode": "single_shot", "judge": "faithfulness", "label": true, "note": "overrun from the Q1 2027 travel line is in [1]", "by": "claude-opus-5-5, reading each answer against the passages it was shown (not a human)"}
+{"id": "syn-039", "mode": "agent", "judge": "faithfulness", "label": true, "note": "", "by": "claude-opus-5-5, reading each answer against the passages it was shown (not a human)"}
+{"id": "look-029", "mode": "agent", "judge": "faithfulness", "label": true, "note": "", "by": "claude-opus-5-5, reading each answer against the passages it was shown (not a human)"}
+{"id": "syn-001", "mode": "single_shot", "judge": "faithfulness", "label": true, "note": "", "by": "claude-opus-5-5, reading each answer against the passages it was shown (not a human)"}
+{"id": "syn-003", "mode": "agent", "judge": "faithfulness", "label": true, "note": "the judge objected to 'Northwind Labs', which passage [1] says", "by": "claude-opus-5-5, reading each answer against the passages it was shown (not a human)"}
+{"id": "syn-010", "mode": "agent", "judge": "faithfulness", "label": true, "note": "", "by": "claude-opus-5-5, reading each answer against the passages it was shown (not a human)"}
+{"id": "syn-010", "mode": "single_shot", "judge": "faithfulness", "label": false, "note": "gives Tomas Silva the title 'Staff Engineer, SRE'; Staff Engineer is Sam Okafor's title", "by": "claude-opus-5-5, reading each answer against the passages it was shown (not a human)"}
+{"id": "look-029", "mode": "single_shot", "judge": "relevance", "label": true, "note": "", "by": "claude-opus-5-5, reading each answer against the passages it was shown (not a human)"}
+{"id": "syn-033", "mode": "single_shot", "judge": "relevance", "label": true, "note": "", "by": "claude-opus-5-5, reading each answer against the passages it was shown (not a human)"}
+{"id": "hw-migrations", "mode": "agent", "judge": "relevance", "label": true, "note": "", "by": "claude-opus-5-5, reading each answer against the passages it was shown (not a human)"}
+{"id": "syn-003", "mode": "single_shot", "judge": "relevance", "label": true, "note": "", "by": "claude-opus-5-5, reading each answer against the passages it was shown (not a human)"}
+{"id": "hw-migrations", "mode": "single_shot", "judge": "relevance", "label": true, "note": "", "by": "claude-opus-5-5, reading each answer against the passages it was shown (not a human)"}
+{"id": "hw-checkout-incident", "mode": "single_shot", "judge": "relevance", "label": true, "note": "", "by": "claude-opus-5-5, reading each answer against the passages it was shown (not a human)"}
+{"id": "syn-025", "mode": "agent", "judge": "relevance", "label": true, "note": "", "by": "claude-opus-5-5, reading each answer against the passages it was shown (not a human)"}
+{"id": "syn-030", "mode": "agent", "judge": "relevance", "label": true, "note": "", "by": "claude-opus-5-5, reading each answer against the passages it was shown (not a human)"}
+{"id": "syn-011", "mode": "agent", "judge": "relevance", "label": true, "note": "", "by": "claude-opus-5-5, reading each answer against the passages it was shown (not a human)"}
+{"id": "look-014", "mode": "agent", "judge": "relevance", "label": true, "note": "", "by": "claude-opus-5-5, reading each answer against the passages it was shown (not a human)"}
+{"id": "look-009", "mode": "agent", "judge": "relevance", "label": true, "note": "", "by": "claude-opus-5-5, reading each answer against the passages it was shown (not a human)"}
+{"id": "syn-019", "mode": "single_shot", "judge": "relevance", "label": true, "note": "", "by": "claude-opus-5-5, reading each answer against the passages it was shown (not a human)"}
+{"id": "syn-016", "mode": "agent", "judge": "relevance", "label": true, "note": "", "by": "claude-opus-5-5, reading each answer against the passages it was shown (not a human)"}
+{"id": "look-021", "mode": "single_shot", "judge": "relevance", "label": true, "note": "", "by": "claude-opus-5-5, reading each answer against the passages it was shown (not a human)"}
+{"id": "syn-001", "mode": "agent", "judge": "relevance", "label": true, "note": "", "by": "claude-opus-5-5, reading each answer against the passages it was shown (not a human)"}
+{"id": "look-028", "mode": "agent", "judge": "relevance", "label": true, "note": "", "by": "claude-opus-5-5, reading each answer against the passages it was shown (not a human)"}
+{"id": "syn-027", "mode": "single_shot", "judge": "relevance", "label": true, "note": "", "by": "claude-opus-5-5, reading each answer against the passages it was shown (not a human)"}
+{"id": "hw-calibration-dates", "mode": "agent", "judge": "relevance", "label": true, "note": "", "by": "claude-opus-5-5, reading each answer against the passages it was shown (not a human)"}
+{"id": "syn-013", "mode": "single_shot", "judge": "relevance", "label": true, "note": "", "by": "claude-opus-5-5, reading each answer against the passages it was shown (not a human)"}
+{"id": "syn-021", "mode": "agent", "judge": "relevance", "label": true, "note": "", "by": "claude-opus-5-5, reading each answer against the passages it was shown (not a human)"}
+{"id": "look-028", "mode": "single_shot", "judge": "relevance", "label": true, "note": "", "by": "claude-opus-5-5, reading each answer against the passages it was shown (not a human)"}
+{"id": "look-014", "mode": "single_shot", "judge": "relevance", "label": true, "note": "", "by": "claude-opus-5-5, reading each answer against the passages it was shown (not a human)"}
+{"id": "syn-039", "mode": "agent", "judge": "relevance", "label": true, "note": "", "by": "claude-opus-5-5, reading each answer against the passages it was shown (not a human)"}
+{"id": "look-029", "mode": "agent", "judge": "relevance", "label": true, "note": "", "by": "claude-opus-5-5, reading each answer against the passages it was shown (not a human)"}
+{"id": "syn-001", "mode": "single_shot", "judge": "relevance", "label": true, "note": "", "by": "claude-opus-5-5, reading each answer against the passages it was shown (not a human)"}
+{"id": "syn-003", "mode": "agent", "judge": "relevance", "label": true, "note": "", "by": "claude-opus-5-5, reading each answer against the passages it was shown (not a human)"}
+{"id": "syn-010", "mode": "agent", "judge": "relevance", "label": true, "note": "", "by": "claude-opus-5-5, reading each answer against the passages it was shown (not a human)"}
+{"id": "syn-010", "mode": "single_shot", "judge": "relevance", "label": true, "note": "", "by": "claude-opus-5-5, reading each answer against the passages it was shown (not a human)"}
+{"id": "na-wifi", "mode": "agent", "judge": "refusal", "label": true, "note": "", "by": "claude-opus-5-5, reading each answer against the passages it was shown (not a human)"}
+{"id": "na-wifi", "mode": "single_shot", "judge": "refusal", "label": true, "note": "", "by": "claude-opus-5-5, reading each answer against the passages it was shown (not a human)"}
+{"id": "na-kyoto-hotel", "mode": "agent", "judge": "refusal", "label": true, "note": "", "by": "claude-opus-5-5, reading each answer against the passages it was shown (not a human)"}
+{"id": "na-kyoto-hotel", "mode": "single_shot", "judge": "refusal", "label": true, "note": "", "by": "claude-opus-5-5, reading each answer against the passages it was shown (not a human)"}
+{"id": "na-salesforce-sla", "mode": "agent", "judge": "refusal", "label": true, "note": "", "by": "claude-opus-5-5, reading each answer against the passages it was shown (not a human)"}
+{"id": "na-salesforce-sla", "mode": "single_shot", "judge": "refusal", "label": true, "note": "", "by": "claude-opus-5-5, reading each answer against the passages it was shown (not a human)"}
+{"id": "acl-salary-bands-eng", "mode": "agent", "judge": "refusal", "label": true, "note": "", "by": "claude-opus-5-5, reading each answer against the passages it was shown (not a human)"}
+{"id": "acl-salary-bands-eng", "mode": "single_shot", "judge": "refusal", "label": true, "note": "", "by": "claude-opus-5-5, reading each answer against the passages it was shown (not a human)"}
+{"id": "acl-cloud-budget-eng", "mode": "agent", "judge": "refusal", "label": true, "note": "", "by": "claude-opus-5-5, reading each answer against the passages it was shown (not a human)"}
+{"id": "acl-cloud-budget-eng", "mode": "single_shot", "judge": "refusal", "label": true, "note": "", "by": "claude-opus-5-5, reading each answer against the passages it was shown (not a human)"}

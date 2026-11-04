@@ -233,12 +233,13 @@ Full recipes are in [`docs/extending.md`](docs/extending.md).
 ## Evals
 
 ```bash
-make eval
+make eval          # retrieval comparison, gated on the committed baseline
+make eval FULL=1   # + contextual retrieval on/off, + agent vs single-shot answers with LLM judges
 ```
 
-1. Generate a synthetic golden set from your corpus: one question per sampled chunk, plus tricky lookalike questions and questions the corpus can't answer.
-2. Compare retrieval setups: dense only, hybrid, hybrid with reranking, and with or without contextual retrieval. Results are scored with recall@k, MRR and nDCG.
-3. Optionally run the pass/fail LLM judges for faithfulness and relevance.
+1. Generate a synthetic golden set from your corpus with `make golden`: one question per sampled chunk, plus tricky lookalike questions (kept only if rated realistic) and questions the corpus can't answer.
+2. Compare retrieval setups: dense only, hybrid, hybrid with reranking, and with or without contextual retrieval (built in a separate database, so your index is untouched). Results are scored with recall@k, MRR and nDCG.
+3. With `FULL=1`, answer every question in agent and single-shot mode and grade the answers with pass/fail LLM judges for faithfulness and relevance, check that unanswerable and forbidden questions are refused, and run red-team prompt injections (`evals/redteam.yaml`). Judge agreement with hand labels is reported next to the numbers. Latest results: [`evals/README.md`](evals/README.md).
 
 Results are saved with a hash of the config, and a regression test fails if recall@5 drops below the committed baseline. Synthetic questions reuse the source chunk's wording, which flatters full-text search, so treat the absolute numbers with care and focus on how configs compare.
 
