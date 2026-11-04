@@ -87,10 +87,22 @@ class InMemoryStore:
                 title=self.docs[c.doc_id].title,
                 source=c.source,
                 section_path=c.section_path,
+                ordinal=c.ordinal,
                 retriever=retriever,
             )
             for s, c in scored[:k]
         ]
+
+    def neighbors(self, windows, principals) -> list[SearchHit]:
+        """Chunks by position (context expansion), ACL-filtered like the retrievers."""
+        visible = self._visible(principals, None)
+        picked = [
+            c
+            for c in visible
+            if any(c.doc_id == d and lo <= c.ordinal <= hi for d, lo, hi in windows)
+        ]
+        picked.sort(key=lambda c: (c.doc_id, c.ordinal))
+        return self._hits([(0.0, c) for c in picked], len(picked), "neighbor")
 
 
 def _cos(a: list[float], b: list[float]) -> float:

@@ -113,7 +113,7 @@ def _content_hash(content: str | bytes) -> str:
 # --- SQL --------------------------------------------------------------------------------------
 
 _HIT_COLUMNS = """
-    c.chunk_id, c.doc_id, c.text, c.section_path, c.source, c.updated_at,
+    c.chunk_id, c.doc_id, c.ordinal, c.text, c.section_path, c.source, c.updated_at,
     coalesce(d.title, '') AS title, d.url
 """
 
@@ -144,6 +144,16 @@ JOIN documents d ON d.doc_id = c.doc_id
 WHERE numnode(q.tsq) > 0 AND c.tsv @@ q.tsq AND {where}
 ORDER BY score DESC, c.chunk_id
 LIMIT %(k)s
+"""
+
+# Chunks by position for context expansion: one row per (doc_id, lo, hi) window, same ACL clause.
+_NEIGHBORS_SQL = """
+SELECT {cols}, 0.0 AS score
+FROM unnest(%(w_docs)s::text[], %(w_lo)s::int[], %(w_hi)s::int[]) AS w(doc_id, lo, hi)
+JOIN chunks c ON c.doc_id = w.doc_id AND c.ordinal BETWEEN w.lo AND w.hi
+JOIN documents d ON d.doc_id = c.doc_id
+WHERE {where}
+ORDER BY c.doc_id, c.ordinal
 """
 
 _UPSERT_DOC_SQL = """
@@ -450,6 +460,35 @@ class PostgresStore:
             )
         return [_hit(r, "lexical") for r in rows]
 
+    def neighbors(
+        self, windows: list[tuple[str, int, int]], principals: list[str]
+    ) -> list[SearchHit]:
+        """Chunks with ``lo <= ordinal <= hi`` for each ``(doc_id, lo, hi)``, ACL-filtered.
+
+        Context expansion uses this, under the same principal clause as both retrievers.
+        """
+        where, params = filter_clause(principals, None)
+        if not params["principals"] or not windows:
+            return []
+        params |= {
+            "w_docs": [d for d, _, _ in windows],
+            "w_lo": [int(lo) for _, lo, _ in windows],
+            "w_hi": [int(hi) for _, _, hi in windows],
+        }
+        with self._lock:
+            rows = (
+                self._ready_conn()
+                .execute(_NEIGHBORS_SQL.format(where=where, cols=_HIT_COLUMNS), params)
+                .fetchall()
+            )
+        seen: set[str] = set()
+        out = []
+        for r in rows:  # overlapping windows return a chunk once per window
+            if r["chunk_id"] not in seen:
+                seen.add(r["chunk_id"])
+                out.append(_hit(r, "neighbor"))
+        return out
+
     # -- maintenance ---------------------------------------------------------------------------
 
     def count_chunks(self) -> int:
@@ -475,4 +514,5 @@ def _hit(row: dict[str, Any], retriever: str) -> SearchHit:
         section_path=list(row["section_path"] or []),
         updated_at=row["updated_at"],
         retriever=retriever,
+        ordinal=row.get("ordinal"),
     )

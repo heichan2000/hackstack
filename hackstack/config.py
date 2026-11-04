@@ -88,7 +88,14 @@ class RerankSettings(_Section):
     provider: str = "voyage"  # registry name: voyage | cross_encoder | noop
     model: str = "rerank-3"
     top_n: int = 8
+    window: int = 50  # fused candidates handed to the reranker (its cost scales with this)
     device: str = "cpu"  # cross_encoder only: cpu | cuda
+
+
+class ExpandSettings(_Section):
+    radius: int = 1  # neighbouring chunks on each side of a hit; 0 turns expansion off
+    same_section: bool = True  # never expand across a heading boundary
+    max_chars: int = 4000  # per passage, anchor included; the anchor itself is never cut
 
 
 class AgentSettings(_Section):
@@ -121,6 +128,7 @@ class Settings(BaseSettings):
     retrieval: RetrievalSettings = Field(default_factory=RetrievalSettings)
     rrf: RRFSettings = Field(default_factory=RRFSettings)
     rerank: RerankSettings = Field(default_factory=RerankSettings)
+    expand: ExpandSettings = Field(default_factory=ExpandSettings)
     agent: AgentSettings = Field(default_factory=AgentSettings)
     tracing: TracingSettings = Field(default_factory=TracingSettings)
     connectors: dict[str, dict[str, Any]] = Field(default_factory=dict)

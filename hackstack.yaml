@@ -36,6 +36,12 @@ rerank:
   provider: voyage               # voyage | cross_encoder | noop
   model: rerank-3
   top_n: 8
+  window: 50                     # fused candidates the reranker scores (cost scales with it)
+
+expand:
+  radius: 1                      # neighbouring chunks per side of each hit; 0 = off
+  same_section: true             # don't cross into a sibling heading
+  max_chars: 4000                # per passage; the matched chunk itself is never cut
 
 agent:
   max_iterations: 6
@@ -70,3 +76,6 @@ profiles:
       provider: cross_encoder      # CPU, ~1.2 s per 30 candidates; needs `uv sync --extra rerank`
       model: cross-encoder/ms-marco-MiniLM-L6-v2   # set provider: noop to skip reranking
       device: cpu
+      window: 30                   # CPU cross-encoder: ~1.2 s for 30, ~2.7 s for 50
+    expand:
+      max_chars: 2000              # 8 passages stay well inside the local model's 16k context

@@ -120,7 +120,9 @@ class SearchHit(BaseModel):
     source: str = ""
     section_path: list[str] = Field(default_factory=list)
     updated_at: datetime | None = None
-    retriever: str = ""  # dense | lexical | hybrid | rerank
+    retriever: str = ""  # dense | lexical | hybrid | rerank | neighbor
+    ordinal: int | None = None  # the chunk's position in its document (context expansion)
+    neighbor_ids: list[str] = Field(default_factory=list)  # chunks expansion folded into text
 
 
 class Citation(BaseModel):

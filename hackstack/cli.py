@@ -176,5 +176,77 @@ def ingest(
             typer.echo(f"  ! {f.item_id} [{f.stage}] {f.error_type}: {f.error}", err=True)
 
 
+@app.command()
+def search(
+    query: Annotated[str, typer.Argument(help="What to look for.")],
+    as_user: Annotated[
+        str | None,
+        typer.Option(
+            "--as",
+            help="Search as this user from the app's users.yaml (default: its default_user).",
+        ),
+    ] = None,
+    source: Annotated[
+        list[str] | None, typer.Option("--source", "-s", help="Only these sources.")
+    ] = None,
+    since: Annotated[
+        str | None, typer.Option(help="Only chunks updated on/after this ISO date.")
+    ] = None,
+    top_n: Annotated[int | None, typer.Option("--top-n", "-n", help="Hits to keep.")] = None,
+    as_json: Annotated[bool, typer.Option("--json", help="Print every stage as JSON.")] = False,
+    file: FileOpt = None,
+    profile: ProfileOpt = None,
+    apps_dir: AppsDirOpt = DEFAULT_APPS_DIR,
+) -> None:
+    """Hybrid search as a user: dense + lexical -> RRF -> rerank -> neighbour expansion."""
+    import psycopg
+
+    from hackstack.retrieval.acl import UnknownUserError, resolve_principals
+    from hackstack.retrieval.hybrid import HybridRetriever
+    from hackstack.retrieval.rerank import RerankerUnavailable
+
+    try:
+        settings = load_settings(file, profile=profile)
+        user = as_user or load_app(settings, apps_dir=apps_dir).default_user
+        if not user:
+            raise ValueError("no --as user and the app has no default_user")
+        principals = resolve_principals(settings, user, apps_dir=apps_dir)
+        filters = {"source": source or None, "since": since}
+        result = HybridRetriever.from_settings(settings).retrieve(
+            query, principals, filters, top_n=top_n
+        )
+    except (UnknownUserError, RerankerUnavailable, ValueError) as exc:
+        typer.echo(f"error: {exc.args[0] if exc.args else exc}", err=True)
+        raise typer.Exit(code=2) from exc
+    except psycopg.OperationalError as exc:
+        first = str(exc).strip().splitlines()[0] if str(exc).strip() else type(exc).__name__
+        typer.echo(f"error: cannot reach Postgres ({first}). Is it running? `make up`", err=True)
+        raise typer.Exit(code=2) from exc
+
+    if as_json:
+        out = {
+            "query": query,
+            "user": user,
+            "principals": principals,
+            "counts": {
+                stage: len(getattr(result, stage))
+                for stage in ("dense", "lexical", "fused", "reranked", "hits")
+            },
+            "hits": [h.model_dump(mode="json") for h in result.hits],
+        }
+        typer.echo(json.dumps(out, indent=2))
+        return
+    typer.echo(
+        f"{user}: dense {len(result.dense)}, lexical {len(result.lexical)}, fused "
+        f"{len(result.fused)} -> reranked {len(result.reranked)} -> {len(result.hits)} passages"
+    )
+    for i, h in enumerate(result.hits, start=1):
+        where = " > ".join(h.section_path) or h.title
+        extra = f" +{len(h.neighbor_ids)} neighbours" if h.neighbor_ids else ""
+        typer.echo(f"{i:2}. [{h.score:.3f}] {h.title} | {where} ({h.chunk_id}){extra}")
+        snippet = " ".join(h.text.split())
+        typer.echo(f"    {snippet[:200]}{'...' if len(snippet) > 200 else ''}")
+
+
 if __name__ == "__main__":
     app()
