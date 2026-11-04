@@ -14,7 +14,8 @@ def _isolated_env(monkeypatch, tmp_path):
 
 # --- Postgres (integration tests marked ``pg``) ------------------------------------------------
 
-PG_TEST_DB = "hackstack_test"
+# Per-process name so parallel test runs (other worktrees/sessions) never drop each other's DB.
+PG_TEST_DB = f"hackstack_test_{os.getpid()}"
 
 
 def _base_pg_dsn() -> str:
@@ -27,7 +28,7 @@ def _base_pg_dsn() -> str:
 
 @pytest.fixture(scope="session")
 def pg_dsn():
-    """DSN of a throwaway ``hackstack_test`` database on the Compose Postgres; skips if absent."""
+    """DSN of a throwaway per-process database on the Compose Postgres; skips if absent."""
     psycopg = pytest.importorskip("psycopg")
     from psycopg.conninfo import conninfo_to_dict, make_conninfo
 
