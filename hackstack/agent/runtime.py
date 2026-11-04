@@ -50,6 +50,7 @@ class Agent:
     tools: list[Tool]
     app: App | None = None
     llm_opts: dict[str, Any] = field(default_factory=dict)
+    mcp: Any = None  # MCPClient holding the external MCP servers' sessions, if any
 
     @classmethod
     def from_settings(
@@ -68,13 +69,26 @@ class Agent:
 
             retriever = HybridRetriever.from_settings(settings)
         names = app.tools if app is not None and app.tools else CORE_TOOLS
+        tools = load_tools(names, app_root=app.root if app is not None else None)
+        mcp = None
+        if any(s.enabled for s in settings.mcp_servers.values()):
+            from hackstack.mcp_client import MCPClient
+
+            mcp = MCPClient(settings.mcp_servers)
+            tools += mcp.start()  # <server>__<tool>; a server that fails is skipped
         return cls(
             settings=settings,
             llm=llm if llm is not None else make_llm(settings),
             retriever=retriever,
-            tools=load_tools(names, app_root=app.root if app is not None else None),
+            tools=tools,
             app=app,
+            mcp=mcp,
         )
+
+    def close(self) -> None:
+        """Stop the external MCP servers (if any). The agent's MCP tools stop working."""
+        if self.mcp is not None:
+            self.mcp.close()
 
     @property
     def default_user(self) -> str | None:

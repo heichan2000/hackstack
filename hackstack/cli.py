@@ -301,6 +301,12 @@ def ask(
 
     async def run() -> Any:
         agent = Agent.from_settings(load_settings(file, profile=profile), apps_dir=apps_dir)
+        try:
+            return await drive(agent)
+        finally:
+            agent.close()  # stops any external MCP servers
+
+    async def drive(agent: Any) -> Any:
         user = as_user or agent.default_user
         if not user:
             raise ValueError("no --as user and the app has no default_user")

@@ -114,6 +114,22 @@ class TracingSettings(_Section):
     capture_content: bool = False  # true only locally: spans would carry PII
 
 
+class MCPServerSettings(_Section):
+    """One external MCP server, started over stdio (the same shape as Claude Desktop's config).
+
+    ``env`` values may be ``${VAR}`` placeholders, filled from the environment or ``.env`` so
+    tokens stay out of ``hackstack.yaml``. ``tools`` is an optional allowlist of tool names.
+    """
+
+    command: str
+    args: list[str] = Field(default_factory=list)
+    env: dict[str, str] = Field(default_factory=dict)
+    cwd: str | None = None
+    tools: list[str] | None = None
+    enabled: bool = True
+    timeout: float = 30.0  # seconds per tool call
+
+
 class Settings(BaseSettings):
     """Every non-secret setting. Build it with :func:`load_settings`."""
 
@@ -137,6 +153,8 @@ class Settings(BaseSettings):
     agent: AgentSettings = Field(default_factory=AgentSettings)
     tracing: TracingSettings = Field(default_factory=TracingSettings)
     connectors: dict[str, dict[str, Any]] = Field(default_factory=dict)
+    # External MCP servers whose tools the agent may call, as <name>__<tool> (mcp_client.py)
+    mcp_servers: dict[str, MCPServerSettings] = Field(default_factory=dict)
 
     _profile: str = PrivateAttr(DEFAULT_PROFILE)
 

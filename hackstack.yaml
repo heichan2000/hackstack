@@ -55,6 +55,15 @@ tracing:
 # overrides the app's, key by key, e.g. connectors: {local_files: {path: ./my_docs}}.
 connectors: {}
 
+# External MCP servers (stdio). Their tools join the agent's as <server>__<tool>, e.g.
+# github__search_issues; a server that fails to start is skipped. ${VAR} in env comes from .env.
+#   github:
+#     command: npx
+#     args: ["-y", "@modelcontextprotocol/server-github"]
+#     env: {GITHUB_PERSONAL_ACCESS_TOKEN: "${GITHUB_TOKEN}"}
+#     tools: [search_issues, get_issue]   # optional allowlist
+mcp_servers: {}
+
 profiles:
   # Fully local, no paid APIs: HACKSTACK_PROFILE=local
   local:
