@@ -46,6 +46,10 @@ expand:
 agent:
   max_iterations: 6
   mode: agent                    # agent | single_shot
+  history_tokens: 60000          # stored history per turn; older tool results get trimmed first
+
+api:
+  cors_origins: [http://localhost:3000, http://127.0.0.1:3000]
 
 tracing:
   enabled: false
@@ -94,3 +98,5 @@ profiles:
       window: 30                   # CPU cross-encoder: ~1.2 s for 30, ~2.7 s for 50
     expand:
       max_chars: 2000              # 8 passages stay well inside the local model's 16k context
+    agent:
+      history_tokens: 5000         # 16k context: ~2k prompt+tools, ~4k per search, room to answer

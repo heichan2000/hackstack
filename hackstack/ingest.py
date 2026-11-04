@@ -212,3 +212,51 @@ def ingestor_from_settings(
         store=store,
         enricher=enricher,
     )
+
+
+def ingest_app(
+    settings: Any,
+    *,
+    connectors: list[str] | None = None,
+    path: str | None = None,
+    dry_run: bool = False,
+    full: bool = False,
+    apps_dir: Any = None,
+) -> list[Any]:
+    """Ingest the active app's sources (``hackstack ingest`` and ``POST /ingest``).
+
+    Connector configs come from the app's ``app.yaml``, overridden by ``hackstack.yaml``; with no
+    app folder, ``hackstack.yaml``'s ``connectors:`` alone. Stores that keep sync state run
+    incrementally (:class:`~hackstack.sync.manager.SyncManager`). Returns one report per
+    connector; raises ``KeyError`` / ``ValueError`` for bad config.
+    """
+    from pathlib import Path
+
+    from hackstack.apps import DEFAULT_APPS_DIR, load_app
+    from hackstack.config import load_secrets
+    from hackstack.sync.manager import SyncManager, SyncStore
+
+    apps_dir = Path(apps_dir if apps_dir is not None else DEFAULT_APPS_DIR)
+    if (apps_dir / settings.app / "app.yaml").is_file():
+        configs = load_app(settings, apps_dir=apps_dir).connectors
+    else:
+        configs = dict(settings.connectors)
+    names = connectors or list(configs) or ["local_files"]
+    secrets = {
+        k: (v.get_secret_value() if hasattr(v, "get_secret_value") else v)
+        for k, v in load_secrets().model_dump().items()
+        if v is not None
+    }
+    reports = []
+    for name in names:
+        ingestor = ingestor_from_settings(
+            settings, name, secrets, cfg=configs.get(name), path=path, dry_run=dry_run
+        )
+        try:
+            if isinstance(ingestor.store, SyncStore):
+                reports.append(SyncManager(ingestor).run(full=full))
+            else:
+                reports.append(ingestor.run())
+        finally:
+            ingestor.close()
+    return reports

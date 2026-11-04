@@ -2,7 +2,7 @@
 # Pick a profile per command: HACKSTACK_PROFILE=local make ingest-sample
 # Phoenix tracing: COMPOSE_PROFILES=tracing make up
 
-.PHONY: help setup ollama-models up down ingest-sample dev test lint fmt eval golden mcp reset
+.PHONY: help setup ollama-models up down ingest-sample dev dev-api dev-web test lint fmt eval golden mcp reset
 
 help:
 	@echo "setup ollama-models up down ingest-sample dev test lint fmt eval golden mcp reset  (see README: Make targets)"
@@ -55,7 +55,21 @@ eval:
 golden:
 	uv run python -m evals.make_golden --lookalikes 30
 
+## API on :8000 (and the web UI on :3000 once web/ exists), with reload. SSE contract: docs/sse.md
+ifneq ($(wildcard web/package.json),)
+dev:
+	$(MAKE) -j2 dev-api dev-web
+else
+dev: dev-api
+endif
+
+dev-api:
+	uv run uvicorn hackstack.api.app:create_app --factory --reload --reload-dir hackstack --host 127.0.0.1 --port 8000
+
+dev-web:
+	npm --prefix web run dev
+
 # --- not built yet: each lands with its own map ticket -----------------------------------
-dev mcp:
+mcp:
 	@echo make $@: not built yet - see the Hackstack v1 map, heichan2000/hackstack issue 1
 	@exit 1

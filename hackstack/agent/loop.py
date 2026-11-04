@@ -52,6 +52,17 @@ class ToolStart(BaseModel):
     input: dict[str, Any] = Field(default_factory=dict)
 
 
+class ToolHit(BaseModel):
+    """One passage a tool call returned, for the live search panel."""
+
+    number: int  # its citation number in the conversation
+    chunk_id: str
+    doc_id: str
+    title: str
+    score: float
+    url: str | None = None
+
+
 class ToolEnd(BaseModel):
     type: Literal["tool_end"] = "tool_end"
     id: str
@@ -60,6 +71,7 @@ class ToolEnd(BaseModel):
     results: int = 0  # passages returned (0 for plain-text results)
     seconds: float = 0.0
     summary: str = ""  # the error message, or the first passage titles
+    hits: list[ToolHit] = Field(default_factory=list)
 
 
 class SourceInfo(BaseModel):
@@ -190,9 +202,12 @@ async def _run_tool(
 
 
 def _to_result_content(
-    out: ToolOutput, registry: CitationRegistry
+    out: ToolOutput, registry: CitationRegistry, shown: list[ToolHit] | None = None
 ) -> tuple[str | list[dict[str, Any]], int, str]:
-    """Tool output as ``tool_result`` content, plus (passage count, summary)."""
+    """Tool output as ``tool_result`` content, plus (passage count, summary).
+
+    Passages handed to the model are appended to ``shown`` with their citation numbers.
+    """
     if isinstance(out, Passages):
         hits = [h for h in out.hits if not (out.skip_seen and registry.seen(h.chunk_id))]
         if not hits:
@@ -200,7 +215,21 @@ def _to_result_content(
             if out.hits:  # everything matched was shown before
                 empty = "No new results: every match was already shown above."
             return [{"type": "text", "text": empty}], 0, empty
-        blocks = [registry.add(h) for h in hits]
+        blocks = []
+        for h in hits:
+            blocks.append(registry.add(h))
+            if shown is not None:
+                ref = registry.refs[-1]
+                shown.append(
+                    ToolHit(
+                        number=ref.number,
+                        chunk_id=h.chunk_id,
+                        doc_id=h.doc_id,
+                        title=ref.title,
+                        score=round(float(h.score), 4),
+                        url=h.url,
+                    )
+                )
         return blocks, len(blocks), "; ".join(b["title"] for b in blocks[:3])
     if isinstance(out, str):
         return out, 0, out[:120]
@@ -222,11 +251,17 @@ async def _execute(
             )
             continue
         # Registered in call order, so numbering matches the history the provider sees.
-        content, n, summary = _to_result_content(out, ctx.citations)
+        shown: list[ToolHit] = []
+        content, n, summary = _to_result_content(out, ctx.citations, shown)
         results.append({"type": "tool_result", "tool_use_id": call.id, "content": content})
         ends.append(
             ToolEnd(
-                id=call.id, name=call.name, results=n, seconds=round(seconds, 3), summary=summary
+                id=call.id,
+                name=call.name,
+                results=n,
+                seconds=round(seconds, 3),
+                summary=summary,
+                hits=shown,
             )
         )
     return results, ends
@@ -370,13 +405,15 @@ async def stream_single_shot(
     hits = await asyncio.to_thread(
         ctx.retriever.search, question, ctx.principals, None, top_n=ctx.top_n
     )
-    content, n, summary = _to_result_content(Passages(hits=list(hits)), ctx.citations)
+    shown: list[ToolHit] = []
+    content, n, summary = _to_result_content(Passages(hits=list(hits)), ctx.citations, shown)
     end = ToolEnd(
         id="retrieve",
         name="retrieve",
         results=n,
         seconds=round(time.perf_counter() - r0, 3),
         summary=summary,
+        hits=shown,
     )
     yield end
     blocks = content if isinstance(content, list) else [{"type": "text", "text": content}]

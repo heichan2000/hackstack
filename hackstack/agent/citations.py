@@ -23,6 +23,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
+from hackstack.agent.history import TRIMMED
 from hackstack.llm.citations import KB_SCHEME, search_result_text
 from hackstack.models import Citation, SearchHit
 
@@ -152,8 +153,15 @@ class CitationRegistry:
                 if not isinstance(inner, list):
                     continue
                 for b in inner:
-                    if b.get("type") == "search_result":
-                        reg._remember(_ref_from_block(b, len(reg.refs) + 1))
+                    if b.get("type") != "search_result":
+                        continue
+                    ref = _ref_from_block(b, len(reg.refs) + 1)
+                    if ref.text.startswith(TRIMMED):
+                        # Trimmed from history (agent.history): numbered, but not "shown",
+                        # so searching again brings the passage back.
+                        reg.refs.append(ref)
+                    else:
+                        reg._remember(ref)
         return reg
 
 

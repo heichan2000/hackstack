@@ -106,6 +106,17 @@ class ExpandSettings(_Section):
 class AgentSettings(_Section):
     max_iterations: int = 6
     mode: Literal["agent", "single_shot"] = "agent"
+    # Stored history sent to the model per turn, in rough tokens; older tool results are
+    # trimmed, then the oldest turns dropped, to fit (agent/history.py). Leave room for the
+    # system prompt, tools and this turn's own searches.
+    history_tokens: int = 60_000
+
+
+class ApiSettings(_Section):
+    # Browser origins allowed to call the API (the Next.js dev server by default).
+    cors_origins: list[str] = Field(
+        default_factory=lambda: ["http://localhost:3000", "http://127.0.0.1:3000"]
+    )
 
 
 class TracingSettings(_Section):
@@ -151,6 +162,7 @@ class Settings(BaseSettings):
     rerank: RerankSettings = Field(default_factory=RerankSettings)
     expand: ExpandSettings = Field(default_factory=ExpandSettings)
     agent: AgentSettings = Field(default_factory=AgentSettings)
+    api: ApiSettings = Field(default_factory=ApiSettings)
     tracing: TracingSettings = Field(default_factory=TracingSettings)
     connectors: dict[str, dict[str, Any]] = Field(default_factory=dict)
     # External MCP servers whose tools the agent may call, as <name>__<tool> (mcp_client.py)

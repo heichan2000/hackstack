@@ -123,34 +123,14 @@ def ingest(
     Runs are incremental: unchanged documents are skipped, only changed chunks are re-embedded,
     deleted source items leave the index, and each connector resumes from its saved cursor.
     """
-    from hackstack.config import load_secrets
-    from hackstack.ingest import ingestor_from_settings
-    from hackstack.sync.manager import SyncManager, SyncReport, SyncStore
+    from hackstack.ingest import ingest_app
+    from hackstack.sync.manager import SyncReport
 
     try:
         settings = load_settings(file, profile=profile)
-        if (Path(apps_dir) / settings.app / "app.yaml").is_file():
-            configs = load_app(settings, apps_dir=apps_dir).connectors
-        else:
-            configs = dict(settings.connectors)
-        names = connector or list(configs) or ["local_files"]
-        secrets = {
-            k: (v.get_secret_value() if hasattr(v, "get_secret_value") else v)
-            for k, v in load_secrets().model_dump().items()
-            if v is not None
-        }
-        reports = []
-        for name in names:
-            ingestor = ingestor_from_settings(
-                settings, name, secrets, cfg=configs.get(name), path=path, dry_run=dry_run
-            )
-            try:
-                if isinstance(ingestor.store, SyncStore):
-                    reports.append(SyncManager(ingestor).run(full=full))
-                else:
-                    reports.append(ingestor.run())
-            finally:
-                ingestor.close()
+        reports = ingest_app(
+            settings, connectors=connector, path=path, dry_run=dry_run, full=full, apps_dir=apps_dir
+        )
     except (KeyError, ValueError) as exc:
         typer.echo(f"error: {exc.args[0] if exc.args else exc}", err=True)
         raise typer.Exit(code=2) from exc
