@@ -1,4 +1,4 @@
-"""The ``hackstack`` command. Later tickets add ``ask``, ``ingest``, ``reset`` and friends."""
+"""The ``hackstack`` command. Later tickets add ``ask``, ``ingest`` and friends."""
 
 from __future__ import annotations
 
@@ -60,6 +60,38 @@ def show_app(
     out = loaded.model_dump(mode="json", exclude={"system_prompt"})
     out["system_prompt_chars"] = len(loaded.system_prompt)
     typer.echo(json.dumps(out, indent=2))
+
+
+@app.command()
+def reset(
+    file: FileOpt = None,
+    profile: ProfileOpt = None,
+    yes: Annotated[bool, typer.Option("--yes", "-y", help="Do not ask for confirmation.")] = False,
+) -> None:
+    """Drop and recreate the index for the configured embedder (then re-ingest)."""
+    import psycopg
+
+    from hackstack.store.postgres import PostgresStore
+
+    try:
+        settings = load_settings(file, profile=profile)
+    except ValueError as exc:
+        typer.echo(f"error: {exc}", err=True)
+        raise typer.Exit(code=2) from exc
+    target = f"{settings.embed.model} ({settings.embed.dim} dim)"
+    if not yes:
+        typer.confirm(
+            f"Drop every indexed document and chunk and rebuild the index for {target}?",
+            abort=True,
+        )
+    try:
+        with PostgresStore.from_settings(settings) as store:
+            store.reset()
+    except psycopg.OperationalError as exc:
+        first = str(exc).strip().splitlines()[0] if str(exc).strip() else type(exc).__name__
+        typer.echo(f"error: cannot reach Postgres ({first}). Is it running? `make up`", err=True)
+        raise typer.Exit(code=2) from exc
+    typer.echo(f"index reset for {target}; re-ingest to fill it")
 
 
 if __name__ == "__main__":

@@ -55,7 +55,7 @@ class EmbedSettings(_Section):
 
 class StoreSettings(_Section):
     provider: str = "postgres"
-    dsn: str = "postgresql://hackstack:hackstack@localhost:5432/hackstack"
+    dsn: str = "postgresql://hackstack:hackstack@localhost:5433/hackstack"
 
 
 class ChunkSettings(_Section):

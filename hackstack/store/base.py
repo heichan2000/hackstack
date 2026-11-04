@@ -10,7 +10,9 @@ class Store(Protocol):
     """Register implementations with ``@register("store", "<name>")``.
 
     Both retrievers must apply the permission filter themselves (inside the query), and must
-    return nothing for principals that match no chunk ACL: fail closed.
+    return nothing for principals that match no chunk ACL: fail closed. ``filters`` supports
+    ``source`` and ``since``, applied identically by both. ``upsert`` needs every
+    ``chunk.embedding`` set and must refuse vectors from a different embedder.
     """
 
     def upsert(self, doc: RawDoc, chunks: list[Chunk]) -> None: ...

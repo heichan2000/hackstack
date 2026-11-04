@@ -6,6 +6,7 @@ readme = "README.md"
 license = "MIT"
 requires-python = ">=3.11"
 dependencies = [
+    "psycopg[binary]>=3.2",
     "pydantic>=2.9",
     "pydantic-settings>=2.6",
     "python-dotenv>=1.2.4",
@@ -32,6 +33,9 @@ packages = ["hackstack"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+markers = [
+    "pg: needs Postgres (make up); skipped when it is not reachable",
+]
 
 [tool.ruff]
 line-length = 100

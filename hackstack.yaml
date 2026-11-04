@@ -16,7 +16,7 @@ embed:
 
 store:
   provider: postgres
-  dsn: postgresql://hackstack:hackstack@localhost:5432/hackstack
+  dsn: postgresql://hackstack:hackstack@localhost:5433/hackstack
 
 chunk:
   size: 400                      # tokens

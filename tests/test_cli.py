@@ -60,3 +60,18 @@ def test_bad_profile_exits_nonzero_with_a_readable_error(tmp_path):
     result = runner.invoke(app, ["config", "--file", str(write_cfg(tmp_path)), "--profile", "x"])
     assert result.exit_code != 0
     assert "unknown profile 'x'" in result.output
+
+
+def test_reset_asks_before_dropping_and_does_nothing_when_declined(tmp_path):
+    result = runner.invoke(app, ["reset", "--file", str(write_cfg(tmp_path))], input="n\n")
+    assert result.exit_code != 0
+    assert "Drop" in result.output
+    assert "Aborted" in result.output
+
+
+def test_reset_reports_an_unreachable_database_readably(tmp_path, monkeypatch):
+    monkeypatch.setenv("HACKSTACK_STORE__DSN", "postgresql://u:p@127.0.0.1:1/x?connect_timeout=2")
+    result = runner.invoke(app, ["reset", "--yes", "--file", str(write_cfg(tmp_path))])
+    assert result.exit_code == 2
+    assert "error:" in result.output
+    assert "make up" in result.output

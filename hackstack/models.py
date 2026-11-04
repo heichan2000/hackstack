@@ -81,6 +81,7 @@ class Chunk(BaseModel):
     source: str
     updated_at: datetime | None = None
     acl_principals: list[str]
+    embedding: list[float] | None = Field(default=None, repr=False)  # set by the embedder
 
     @classmethod
     def for_doc(
