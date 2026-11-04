@@ -7,6 +7,10 @@ import json
 import sys
 
 import pytest
+
+# The SDK and OTLP exporter are the optional ``tracing`` extra (``make setup`` installs it).
+pytest.importorskip("opentelemetry.sdk.trace", reason="needs the tracing extra")
+
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
@@ -314,6 +318,10 @@ def test_build_provider_tags_the_resource_for_phoenix():
 
 
 def test_setup_is_idempotent_and_sets_the_global_provider_once(monkeypatch):
+    # The SDK can arrive through other packages; the exporter only comes with the extra.
+    pytest.importorskip(
+        "opentelemetry.exporter.otlp.proto.http.trace_exporter", reason="needs the tracing extra"
+    )
     tracing.reset()
     installed = []
     monkeypatch.setattr(tracing.trace, "set_tracer_provider", installed.append)

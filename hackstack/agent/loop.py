@@ -40,6 +40,7 @@ from pydantic import BaseModel, Field
 from hackstack import semconv as sc
 from hackstack import tracing
 from hackstack.agent.citations import CitationRegistry, SourceRef, is_low_grounding
+from hackstack.agent.guard import OutputGuard, guard_text
 from hackstack.agent.tools import Passages, Tool, ToolContext, ToolInputError, ToolOutput
 from hackstack.llm.base import LLMProvider
 from hackstack.models import Citation, CitationEvent, Stop, TextDelta, ToolCall
@@ -139,19 +140,39 @@ async def _stream_turn(
 ) -> AsyncIterator[TextDelta | CitationEvent]:
     s = _llm_span(llm, opts, parent, iteration)
     tracing.content(s, sc.OI_INPUT_VALUE, {"system": system, "messages": history})
+    guard = _guard(system, registry)
+    # The guard holds text back; a citation waits until the text before it has come out.
+    waiting: list[tuple[int, CitationEvent]] = []
+
+    def due() -> list[CitationEvent]:
+        ready = [c for at, c in waiting if at <= guard.released]
+        waiting[:] = [(at, c) for at, c in waiting if at > guard.released]
+        return ready
+
     try:
         async for event in llm.stream(system, history, tools, **opts):
             if isinstance(event, TextDelta):
-                turn.text.append(event.text)
-                yield event
+                if safe := guard.feed(event.text):
+                    turn.text.append(safe)
+                    yield event.model_copy(update={"text": safe})
+                for c in due():
+                    yield c
             elif isinstance(event, ToolCall):
                 turn.calls.append(event)
             elif isinstance(event, CitationEvent):
                 citation = registry.resolve(event.citation)
                 cited.setdefault(citation.chunk_id or citation.doc_id, citation)
-                yield CitationEvent(citation=citation)
+                waiting.append((guard.fed, CitationEvent(citation=citation)))
+                for c in due():
+                    yield c
             elif isinstance(event, Stop):
                 turn.stop = event
+        if tail := guard.finish():
+            turn.text.append(tail)
+            yield TextDelta(text=tail)
+        for _, c in waiting:
+            yield c
+        _guard_content(turn, system, registry)
     except (GeneratorExit, asyncio.CancelledError):
         raise
     except BaseException as exc:
@@ -161,6 +182,30 @@ async def _stream_turn(
         _record_llm(s, turn)
     finally:
         s.end()
+
+
+def _guard(system: str, registry: CitationRegistry) -> OutputGuard:
+    """The output guard for one LLM call: links may point only at sources shown so far."""
+    return OutputGuard(
+        system=system,
+        allowed_urls=lambda: {r.url for r in registry.refs if r.url},
+        passages=lambda: [r.text for r in registry.refs],
+    )
+
+
+def _guard_content(turn: _Turn, system: str, registry: CitationRegistry) -> None:
+    """Guard the provider's verbatim content too: it is what gets stored and reloaded."""
+    if not turn.stop.content:
+        return
+    urls = {r.url for r in registry.refs if r.url}
+    shown = [r.text for r in registry.refs]
+    blocks = []
+    for block in turn.stop.content:
+        if block.get("type") == "text" and isinstance(block.get("text"), str):
+            text = guard_text(block["text"], system=system, allowed_urls=urls, passages=shown)
+            block = {**block, "text": text}
+        blocks.append(block)
+    turn.stop = turn.stop.model_copy(update={"content": blocks})
 
 
 def _llm_span(llm: LLMProvider, opts: dict[str, Any], parent: Span | None, iteration: int) -> Span:

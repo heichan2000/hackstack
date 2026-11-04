@@ -54,6 +54,13 @@ data: {"type": "text_delta", "text": "Five days "}
 
 Streamed answer text. Append in order. `[n]` markers are citation numbers; see `citation`.
 
+The text has already been through the output guard (`hackstack/agent/guard.py`): markdown images
+and HTML media tags are replaced with `(image removed)`, links keep their URL only when it is a
+shown source's URL, and an answer that starts repeating the system prompt is cut and ends with a
+notice. The guard holds back undecided text (an open `[`, `![` or `<`, and the last few words), so
+deltas can arrive in bursts, and a `citation` event comes after the text before it. Clients
+should still never render remote images.
+
 ### `citation`
 
 ```json
@@ -132,7 +139,7 @@ The turn failed after streaming began, for example because the model or the data
 
 ## Conversation memory
 
-- **Tables:** `conversations(id, as_user, app, …)` and `messages(conversation_id, seq, role, content_json)`, created on API startup (`hackstack/store/conversations.sql`). `content_json` holds the provider's content blocks verbatim, including tool_use, tool_result, search_result and thinking signatures. That way the history replays exactly and citation numbers stay aligned.
+- **Tables:** `conversations(id, as_user, app, …)` and `messages(conversation_id, seq, role, content_json)`, created on API startup (`hackstack/store/conversations.sql`). `content_json` holds the provider's content blocks verbatim (only text blocks pass through the output guard), including tool_use, tool_result, search_result and thinking signatures. That way the history replays exactly and citation numbers stay aligned.
 - **Long conversations:** before each turn the stored history is fitted to `agent.history_tokens` (`hackstack/agent/history.py`).
   - First, passage text in older turns is trimmed to a placeholder. Citation numbers are unchanged, and a trimmed passage comes back if the model searches again.
   - If that's not enough, the oldest turns are dropped.

