@@ -1,0 +1,20 @@
+# Your hackathon app. Start a new one with:
+#   cp -r apps/_template apps/<idea>    then set `app: <idea>` in hackstack.yaml
+# Relative paths resolve against this folder.
+
+title: My Hackstack App
+description: One line on whose problem this solves.
+
+system_prompt: prompts/system.md
+users: users.yaml
+default_user: demo@example.test
+
+# Agent tools, by name. search_kb and get_document come with the kit. Add your own in tools.py.
+tools:
+  - search_kb
+  - get_document
+
+# Connector configs for this app. hackstack.yaml `connectors:` overrides them key by key.
+connectors:
+  local_files:
+    path: sample_corpus

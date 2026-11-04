@@ -33,6 +33,29 @@ def test_config_command_honours_hackstack_profile(tmp_path, monkeypatch):
     assert out["settings"]["embed"]["provider"] == "ollama"
 
 
+def test_app_command_shows_the_active_apps_title_users_tools_and_connectors(tmp_path):
+    from pathlib import Path
+
+    apps = Path(__file__).resolve().parents[1] / "apps"
+    cfg = tmp_path / "hackstack.yaml"
+    cfg.write_text("app: company_brain\n", encoding="utf-8")
+
+    result = runner.invoke(app, ["app", "--file", str(cfg), "--apps-dir", str(apps)])
+
+    assert result.exit_code == 0, result.output
+    out = json.loads(result.output)
+    assert out["name"] == "company_brain"
+    assert out["title"] == "Northwind Brain"
+    assert "finance@northwind.test" in [u["id"] for u in out["users"]]
+    assert "find_experts" in out["tools"]
+    assert out["connectors"]["local_files"]["path"].endswith("sample_corpus")
+
+    cfg.write_text("app: missing\n", encoding="utf-8")
+    result = runner.invoke(app, ["app", "--file", str(cfg), "--apps-dir", str(apps)])
+    assert result.exit_code != 0
+    assert "known apps: _template, company_brain" in result.output
+
+
 def test_bad_profile_exits_nonzero_with_a_readable_error(tmp_path):
     result = runner.invoke(app, ["config", "--file", str(write_cfg(tmp_path)), "--profile", "x"])
     assert result.exit_code != 0

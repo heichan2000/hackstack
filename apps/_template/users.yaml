@@ -1,0 +1,13 @@
+# Demo personas. `groups` become `group:<name>` principals matched against each document's ACL;
+# the id becomes `user:<id>`. Pick the users from the UI or with `hackstack ask --as <id>`.
+
+users:
+  - id: demo@example.test
+    name: Demo User
+    role: Everyone
+    groups: [everyone]
+
+  - id: admin@example.test
+    name: Admin User
+    role: Sees restricted documents too
+    groups: [everyone, admins]

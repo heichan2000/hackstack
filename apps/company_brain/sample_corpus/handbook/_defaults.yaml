@@ -1,0 +1,10 @@
+# Folder defaults for every document in this folder (and below), unless a document's own
+# front matter sets the key. See apps/company_brain/README.md, "Corpus metadata".
+#
+# These files are an unmodified slice of the PostHog handbook (MIT, see
+# apps/company_brain/THIRD_PARTY.md). They play Northwind Labs' general company handbook.
+acl: [group:everyone]
+# A fixed stand-in date, so the handbook reads as older than the planted Northwind updates
+# and does not flood "what changed since Monday?". The real snapshot date is in THIRD_PARTY.md.
+updated_at: 2026-03-02
+source_type: page

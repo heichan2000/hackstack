@@ -1,0 +1,22 @@
+# The company_brain app: a "company brain" agent for the fictional Northwind Labs.
+# Selected by `app: company_brain` in hackstack.yaml. Relative paths resolve against this folder.
+
+title: Northwind Brain
+description: Ask Northwind Labs' docs, people and decisions. Answers depend on who is asking.
+
+system_prompt: prompts/system.md
+users: users.yaml
+default_user: eng@northwind.test
+
+# Agent tools, by name. Core tools come with the kit; find_experts and whats_changed are
+# this app's own (tools.py, built by the "company_brain tools" ticket).
+tools:
+  - search_kb
+  - get_document
+  - find_experts
+  - whats_changed
+
+# Connector configs for this app. hackstack.yaml `connectors:` overrides them key by key.
+connectors:
+  local_files:
+    path: sample_corpus

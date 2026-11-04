@@ -45,9 +45,9 @@ tracing:
   enabled: false
   endpoint: http://localhost:6006/v1/traces
 
-connectors:
-  local_files:
-    path: apps/company_brain/sample_corpus
+# Connector configs come from the active app's app.yaml (apps/<app>/app.yaml). Anything set here
+# overrides the app's, key by key, e.g. connectors: {local_files: {path: ./my_docs}}.
+connectors: {}
 
 profiles:
   # Fully local, no paid APIs: HACKSTACK_PROFILE=local

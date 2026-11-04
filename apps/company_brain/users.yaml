@@ -1,0 +1,24 @@
+# Demo personas for permission-aware answers. `groups` become `group:<name>` principals that are
+# matched against each document's ACL; the id becomes `user:<id>`. Every Northwind employee is
+# in `everyone`.
+
+users:
+  - id: eng@northwind.test
+    name: Alex Chen
+    role: Software Engineer, Platform
+    groups: [everyone, engineering]
+
+  - id: hr@northwind.test
+    name: Jordan Lee
+    role: HR Business Partner
+    groups: [everyone, hr]
+
+  - id: finance@northwind.test
+    name: Riley Park
+    role: Finance Analyst
+    groups: [everyone, finance]
+
+  - id: ceo@northwind.test
+    name: Morgan Blake
+    role: CEO
+    groups: [everyone, leadership]
