@@ -1,0 +1,28 @@
+name: hackstack
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_USER: hackstack
+      POSTGRES_PASSWORD: hackstack
+      POSTGRES_DB: hackstack
+    ports:
+      - "${HACKSTACK_PG_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hackstack -d hackstack"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  phoenix:
+    image: arizephoenix/phoenix:latest
+    profiles: [tracing]
+    ports:
+      - "6006:6006" # UI + OTLP/HTTP (/v1/traces)
+      - "4317:4317" # OTLP/gRPC
+
+volumes:
+  pgdata:

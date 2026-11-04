@@ -1,0 +1,66 @@
+# Hackstack settings. Non-secret only: keys and tokens go in .env (see .env.example).
+# Any value can be overridden by an env var: HACKSTACK_<SECTION>__<KEY>, e.g. HACKSTACK_RERANK__TOP_N=4.
+# The active profile comes from HACKSTACK_PROFILE (default: "default" = the base below).
+
+app: company_brain
+
+llm:
+  provider: anthropic            # anthropic | openai_compat
+  answer_model: claude-sonnet-5-5
+  aux_model: claude-haiku-5-5
+
+embed:
+  provider: voyage               # voyage | ollama | openai_compat
+  model: voyage-4
+  dim: 1024                      # changing the embedder needs `make reset` + re-ingest
+
+store:
+  provider: postgres
+  dsn: postgresql://hackstack:hackstack@localhost:5432/hackstack
+
+chunk:
+  size: 400                      # tokens
+  overlap: 0                     # tokens, 0-50
+
+enrich:
+  contextual: false
+
+retrieval:
+  window: 50                     # candidates per retriever
+
+rrf:
+  k: 60
+  weights: [1.0, 1.0]            # dense, lexical
+
+rerank:
+  provider: voyage               # voyage | cross_encoder | noop
+  model: rerank-3
+  top_n: 8
+
+agent:
+  max_iterations: 6
+  mode: agent                    # agent | single_shot
+
+tracing:
+  enabled: false
+  endpoint: http://localhost:6006/v1/traces
+
+connectors:
+  local_files:
+    path: apps/company_brain/sample_corpus
+
+profiles:
+  # Fully local, no paid APIs: HACKSTACK_PROFILE=local
+  local:
+    llm:
+      provider: openai_compat
+      base_url: http://localhost:11434/v1
+      answer_model: qwen3:8b       # placeholder until the "Pick local models" ticket decides
+      aux_model: qwen3:8b
+    embed:
+      provider: ollama
+      model: qwen3-embedding:0.6b
+      dim: 1024
+      base_url: http://localhost:11434
+    rerank:
+      provider: noop

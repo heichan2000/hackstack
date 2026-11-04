@@ -1,0 +1,32 @@
+# secrets
+.env
+.secrets/
+*.token.json
+credentials*.json
+client_secret*.json
+
+# python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+build/
+dist/
+
+# web
+node_modules/
+web/.next/
+web/out/
+
+# local data, eval runs, traces
+.data/
+evals/runs/
+*.log
+
+# editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
