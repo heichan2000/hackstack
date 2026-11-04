@@ -14,3 +14,4 @@ This file is a stub. It grows with each piece of the kit and is finalized by the
 |---|---|---|
 | 2026-11-03 | Design research | `docs/research/2026-11-03-rag-starter-kit.md` |
 | 2026-11-03 | Repo skeleton: config + profiles, data models, registry, component interfaces, CLI entry point, offline test fakes, Makefile, Docker Compose | `pyproject.toml`, `Makefile`, `docker-compose.yml`, `hackstack.yaml`, `hackstack/`, `tests/` |
+| 2026-11-04 | Web UI: Next.js chat with streamed cited answers, live sources panel, user switcher, mode toggle | `web/`, `docs/screenshots/` |

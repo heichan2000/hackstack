@@ -2,7 +2,7 @@
 # Pick a profile per command: HACKSTACK_PROFILE=local make ingest-sample
 # Phoenix tracing: COMPOSE_PROFILES=tracing make up
 
-.PHONY: help setup ollama-models up down ingest-sample dev dev-api dev-web test lint fmt eval golden mcp reset
+.PHONY: help setup ollama-models up down ingest-sample dev dev-api dev-web test test-web lint fmt eval golden mcp reset
 
 help:
 	@echo "setup ollama-models up down ingest-sample dev test lint fmt eval golden mcp reset  (see README: Make targets)"
@@ -30,6 +30,12 @@ down:
 ## Unit and integration tests; offline, no keys needed
 test:
 	uv run pytest
+
+## Web UI: vitest unit tests, eslint, typecheck (needs `make setup` for web/node_modules)
+test-web:
+	npm --prefix web test
+	npm --prefix web run lint
+	npm --prefix web run typecheck
 
 lint:
 	uv run ruff check .

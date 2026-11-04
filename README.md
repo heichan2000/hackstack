@@ -134,6 +134,7 @@ uv run hackstack ask "What is the PTO carryover policy?" --as finance@northwind.
 | `make ingest-sample` | Ingest the active app's sample corpus |
 | `make dev` | Run the API and web UI with hot reload |
 | `make test` | Unit and integration tests; offline, no keys needed |
+| `make test-web` | Web UI unit tests (vitest), lint and typecheck; see [`web/README.md`](web/README.md) |
 | `make eval` | Generate or run the golden set and compare retrieval configs |
 | `make mcp` | Start the MCP server over stdio |
 | `make reset` | Drop and recreate the index (needed after changing the embedder) |
