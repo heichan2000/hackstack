@@ -18,6 +18,13 @@ dependencies = [
     "typer>=0.12",
 ]
 
+[project.optional-dependencies]
+# Local cross-encoder reranker (rerank.provider: cross_encoder). CPU torch; `uv sync --extra rerank`
+rerank = [
+    "sentence-transformers>=5.0",
+    "torch>=2.5",
+]
+
 [project.scripts]
 hackstack = "hackstack.cli:app"
 
@@ -39,7 +46,19 @@ testpaths = ["tests"]
 addopts = "-q"
 markers = [
     "pg: needs Postgres (make up); skipped when it is not reachable",
+    "ollama: needs Ollama with qwen3-embedding:0.6b pulled; skipped when it is not reachable",
+    "hf_model: needs the rerank extra and the cross-encoder weights; skipped when absent",
 ]
+
+# PyPI's Linux torch wheels bundle CUDA (multi-GB); the reranker runs on CPU, so take the CPU
+# build there. Windows and macOS PyPI wheels are already CPU-only.
+[tool.uv.sources]
+torch = [{ index = "pytorch-cpu", marker = "sys_platform == 'linux'" }]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
 
 [tool.ruff]
 line-length = 100

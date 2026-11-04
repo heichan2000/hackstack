@@ -51,6 +51,9 @@ class EmbedSettings(_Section):
     model: str = "voyage-4"
     dim: int = 1024
     base_url: str | None = None
+    # Instruction-aware models (qwen3-embedding) prefix queries, not documents, with this task
+    query_instruction: str | None = None
+    batch_size: int = 32  # texts per embedding request
 
 
 class StoreSettings(_Section):
@@ -82,6 +85,7 @@ class RerankSettings(_Section):
     provider: str = "voyage"  # registry name: voyage | cross_encoder | noop
     model: str = "rerank-3"
     top_n: int = 8
+    device: str = "cpu"  # cross_encoder only: cpu | cuda
 
 
 class AgentSettings(_Section):

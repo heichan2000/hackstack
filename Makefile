@@ -7,9 +7,9 @@
 help:
 	@echo "setup up down ingest-sample dev test lint fmt eval mcp reset  (see README: Make targets)"
 
-## Install Python (uv) and web (npm) dependencies
+## Install Python (uv) and web (npm) dependencies; the rerank extra is the local cross-encoder
 setup:
-	uv sync
+	uv sync --extra rerank
 ifneq ($(wildcard web/package.json),)
 	npm --prefix web install
 endif

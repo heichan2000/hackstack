@@ -62,5 +62,8 @@ profiles:
       model: qwen3-embedding:0.6b
       dim: 1024
       base_url: http://localhost:11434
+      query_instruction: Given a question, retrieve passages from company documents that answer it
     rerank:
-      provider: noop
+      provider: cross_encoder      # CPU, ~1.2 s per 30 candidates; needs `uv sync --extra rerank`
+      model: cross-encoder/ms-marco-MiniLM-L6-v2   # set provider: noop to skip reranking
+      device: cpu
