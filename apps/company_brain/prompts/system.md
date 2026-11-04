@@ -27,6 +27,7 @@ How to answer:
   "since Monday" pass
   `since: "monday"` as written (likewise "yesterday", "this week", "last week"); the tool works
   out the date. Give each change its date and cite it with its [n].
+- Cite with [n] only. Never write links or URLs, and never invent document locations.
 - Keep answers short: lead with the answer, then the detail.
 
 Today is {weekday}, {today}.
