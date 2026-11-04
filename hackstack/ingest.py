@@ -77,18 +77,20 @@ class Ingestor:
             if isinstance(item, ConnectorFailure):
                 report.failures.append(item)
                 continue
-            chunks = self._prepare(item, report)
-            if chunks is None:
+            chunks = self.prepare(item)
+            if isinstance(chunks, ConnectorFailure):
+                report.failures.append(chunks)
                 continue
             if self.store is not None:
-                self._embed(chunks)
+                self.embed(chunks)
                 self.store.upsert(item, chunks)
             report.docs += 1
             report.chunks += len(chunks)
         report.seconds = round(time.perf_counter() - started, 3)
         return report
 
-    def _prepare(self, raw: RawDoc, report: IngestReport) -> list[Chunk] | None:
+    def prepare(self, raw: RawDoc) -> list[Chunk] | ConnectorFailure:
+        """Sanitize, parse and chunk one document; a failure is returned, not raised."""
         stage = "parse"
         try:
             content = sanitize_content(raw.content, raw.mime)
@@ -97,12 +99,10 @@ class Ingestor:
             stage = "chunk"
             return self.chunker.chunk(parsed, raw)
         except Exception as exc:
-            report.failures.append(
-                ConnectorFailure.from_exc(self.connector.name, raw.doc_id, exc, stage=stage)
-            )
-            return None
+            return ConnectorFailure.from_exc(self.connector.name, raw.doc_id, exc, stage=stage)
 
-    def _embed(self, chunks: list[Chunk]) -> None:
+    def embed(self, chunks: list[Chunk]) -> None:
+        """Set ``chunk.embedding`` on every chunk, in batches."""
         assert self.embedder is not None
         for batch in _batches(chunks, self.batch_size):
             vectors = self.embedder.embed_documents([c.embed_text for c in batch])

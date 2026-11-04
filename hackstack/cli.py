@@ -109,15 +109,23 @@ def ingest(
         bool, typer.Option("--dry-run", help="Parse and chunk only: no embedding, no store.")
     ] = False,
     as_json: Annotated[bool, typer.Option("--json", help="Print the reports as JSON.")] = False,
+    full: Annotated[
+        bool,
+        typer.Option("--full", help="Ignore saved cursors and re-read every source item."),
+    ] = False,
     apps_dir: AppsDirOpt = DEFAULT_APPS_DIR,
 ) -> None:
     """Ingest the active app's sources: connector -> sanitize -> parse -> chunk -> embed -> store.
 
     Connector configs come from the app's ``app.yaml``, overridden by ``hackstack.yaml``. With no
     app folder, ``hackstack.yaml``'s ``connectors:`` alone.
+
+    Runs are incremental: unchanged documents are skipped, only changed chunks are re-embedded,
+    deleted source items leave the index, and each connector resumes from its saved cursor.
     """
     from hackstack.config import load_secrets
     from hackstack.ingest import ingestor_from_settings
+    from hackstack.sync.manager import SyncManager, SyncReport, SyncStore
 
     try:
         settings = load_settings(file, profile=profile)
@@ -131,12 +139,15 @@ def ingest(
             for k, v in load_secrets().model_dump().items()
             if v is not None
         }
-        reports = [
-            ingestor_from_settings(
+        reports = []
+        for name in names:
+            ingestor = ingestor_from_settings(
                 settings, name, secrets, cfg=configs.get(name), path=path, dry_run=dry_run
-            ).run()
-            for name in names
-        ]
+            )
+            if isinstance(ingestor.store, SyncStore):
+                reports.append(SyncManager(ingestor).run(full=full))
+            else:
+                reports.append(ingestor.run())
     except (KeyError, ValueError) as exc:
         typer.echo(f"error: {exc.args[0] if exc.args else exc}", err=True)
         raise typer.Exit(code=2) from exc
@@ -146,11 +157,18 @@ def ingest(
         typer.echo(json.dumps(out[0] if len(out) == 1 else out, indent=2))
         return
     for r in reports:
-        mode = " (dry run)" if r.dry_run else ""
-        typer.echo(
-            f"{r.connector}{mode}: {r.docs} docs, {r.chunks} chunks, "
-            f"{len(r.failures)} failures in {r.seconds}s"
-        )
+        if isinstance(r, SyncReport):
+            typer.echo(
+                f"{r.connector} ({r.mode}): {r.docs} docs updated, {r.unchanged} unchanged, "
+                f"{r.deleted} deleted; {r.chunks_embedded} chunks embedded, "
+                f"{r.chunks_reused} reused; {len(r.failures)} failures in {r.seconds}s"
+            )
+        else:
+            mode = " (dry run)" if r.dry_run else ""
+            typer.echo(
+                f"{r.connector}{mode}: {r.docs} docs, {r.chunks} chunks, "
+                f"{len(r.failures)} failures in {r.seconds}s"
+            )
         for f in r.failures:
             typer.echo(f"  ! {f.item_id} [{f.stage}] {f.error_type}: {f.error}", err=True)
 

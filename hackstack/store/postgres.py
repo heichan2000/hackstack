@@ -14,6 +14,7 @@ The index remembers which embedder built it (``collection_meta``). Opening it wi
 from __future__ import annotations
 
 import hashlib
+import json
 import threading
 from collections.abc import Iterable, Sequence
 from datetime import UTC, date, datetime
@@ -296,8 +297,12 @@ class PostgresStore:
 
     # -- writes --------------------------------------------------------------------------------
 
-    def upsert(self, doc: RawDoc, chunks: list[Chunk]) -> None:
-        """Insert or replace ``doc`` and its chunks; chunks no longer produced are removed."""
+    def upsert(self, doc: RawDoc, chunks: list[Chunk], *, content_hash: str | None = None) -> None:
+        """Insert or replace ``doc`` and its chunks; chunks no longer produced are removed.
+
+        ``content_hash`` is recorded as the document's hash (the sync manager passes its doc
+        hash); by default it is the SHA-256 of the content.
+        """
         for chunk in chunks:
             if chunk.doc_id != doc.doc_id:
                 raise ValueError(
@@ -319,7 +324,7 @@ class PostgresStore:
             "updated_at": doc.updated_at,
             "parent_id": doc.parent_id,
             "acl": acl,
-            "content_hash": _content_hash(doc.content),
+            "content_hash": content_hash or _content_hash(doc.content),
             "extra": Jsonb(doc.model_dump(mode="json")["extra"]),
         }
         chunk_rows = [
@@ -352,6 +357,47 @@ class PostgresStore:
     def delete_doc(self, doc_id: str) -> None:
         with self._lock:
             self._ready_conn().execute("DELETE FROM documents WHERE doc_id = %s", (doc_id,))
+
+    # -- incremental sync (hackstack.sync.manager.SyncStore) -----------------------------------
+
+    def doc_hashes(self, source: str) -> dict[str, str | None]:
+        with self._lock:
+            rows = (
+                self._ready_conn()
+                .execute("SELECT doc_id, content_hash FROM documents WHERE source = %s", (source,))
+                .fetchall()
+            )
+        return {r["doc_id"]: r["content_hash"] for r in rows}
+
+    def chunk_embeddings(self, doc_id: str) -> list[tuple[str, list[float]]]:
+        with self._lock:
+            rows = (
+                self._ready_conn()
+                .execute(
+                    "SELECT embed_text, embedding::text AS vec FROM chunks WHERE doc_id = %s",
+                    (doc_id,),
+                )
+                .fetchall()
+            )
+        return [(r["embed_text"], [float(x) for x in json.loads(r["vec"])]) for r in rows]
+
+    def get_cursor(self, connector: str) -> dict[str, Any] | None:
+        with self._lock:
+            row = (
+                self._ready_conn()
+                .execute("SELECT cursor FROM sync_state WHERE connector = %s", (connector,))
+                .fetchone()
+            )
+        return None if row is None or row["cursor"] is None else dict(row["cursor"])
+
+    def set_cursor(self, connector: str, cursor: dict[str, Any]) -> None:
+        with self._lock:
+            self._ready_conn().execute(
+                "INSERT INTO sync_state (connector, cursor, updated_at) VALUES (%s, %s, now())"
+                " ON CONFLICT (connector) DO UPDATE SET cursor = EXCLUDED.cursor,"
+                " updated_at = EXCLUDED.updated_at",
+                (connector, Jsonb(cursor)),
+            )
 
     # -- reads ---------------------------------------------------------------------------------
 

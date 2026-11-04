@@ -85,6 +85,8 @@ class MetadataError(ValueError):
 @register(CONNECTOR, NAME)
 class LocalFilesConnector:
     name = NAME
+    #: ``extra`` keys the sync manager leaves out of the doc hash: a checkout resets mtimes.
+    volatile_extra = frozenset({"mtime"})
 
     def __init__(self) -> None:
         self.root = Path(".")
@@ -107,19 +109,57 @@ class LocalFilesConnector:
             raise ValueError(f"local_files: folder not found: {self.root}")
 
     def load_all(self) -> Iterator[RawDoc | ConnectorFailure]:
-        for emitted, path in enumerate(self._files()):
-            if self.max_items is not None and emitted >= self.max_items:
-                return
-            doc_id = self.doc_id(path)
-            try:
-                yield self._load(path, doc_id)
-            except Exception as exc:  # one bad file must not crash the run
-                yield ConnectorFailure.from_exc(NAME, doc_id, exc)
+        for path in self._capped_files():
+            yield self._load_or_fail(path)
+
+    def poll(
+        self, since: datetime, until: datetime | None = None
+    ) -> Iterator[RawDoc | ConnectorFailure]:
+        """Files changed at or after ``since``: the file, its sidecar or any ``_defaults.yaml``
+        above it. ``until`` is not enforced: mtimes come from a coarser clock than the cursor
+        and can land just past it, and a file edited during the walk is better read now than
+        next run (the sync manager's hash check makes re-reading free). A rename or a copy that
+        keeps the old mtime is not seen here; the sync manager finds those via :meth:`list_ids`.
+        """
+        del until
+        lo = since.timestamp()
+        for path in self._capped_files():
+            if self._changed_at(path) >= lo:
+                yield self._load_or_fail(path)
+
+    def list_ids(self) -> Iterator[str]:
+        """Every document ``load_all`` would yield, without reading any of them."""
+        for path in self._capped_files():
+            yield self.doc_id(path)
 
     def doc_id(self, path: Path) -> str:
         return f"{NAME}:{path.relative_to(self.root).as_posix()}"
 
     # --- walking -----------------------------------------------------------------------------
+
+    def _capped_files(self) -> Iterator[Path]:
+        for emitted, path in enumerate(self._files()):
+            if self.max_items is not None and emitted >= self.max_items:
+                return
+            yield path
+
+    def _load_or_fail(self, path: Path) -> RawDoc | ConnectorFailure:
+        doc_id = self.doc_id(path)
+        try:
+            return self._load(path, doc_id)
+        except Exception as exc:  # one bad file must not crash the run
+            return ConnectorFailure.from_exc(NAME, doc_id, exc)
+
+    def _changed_at(self, path: Path) -> float:
+        """Latest mtime among the file and everything its metadata comes from."""
+        sources = [path, path.with_name(path.name + SIDECAR_SUFFIX)]
+        folder = path.parent
+        while True:
+            sources.append(folder / FOLDER_DEFAULTS)
+            if folder == self.root or self.root not in folder.parents:
+                break
+            folder = folder.parent
+        return max(p.stat().st_mtime for p in sources if p.exists())
 
     def _files(self) -> Iterator[Path]:
         for path in sorted(self.root.rglob("*")):

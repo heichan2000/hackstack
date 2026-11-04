@@ -41,9 +41,16 @@ class Connector(Protocol):
     ``load_all`` yields a :class:`ConnectorFailure` for an item it cannot read, then carries
     on: one bad file or page must not crash a whole run.
 
-    Optional capabilities, detected with ``hasattr``:
-    ``poll(since: datetime) -> Iterator[RawDoc]`` for cheap increments and
-    ``list_ids() -> Iterator[str]`` for deletion checks.
+    Optional capabilities, detected with ``hasattr`` by the sync manager
+    (:mod:`hackstack.sync.manager`):
+
+    * ``poll(since, until) -> Iterator[RawDoc | ConnectorFailure]``: only the items changed in
+      ``[since, until)``. Cheap increments; a miss costs freshness, never correctness, because
+      the manager hash-checks whatever it gets and a ``--full`` run re-reads everything.
+    * ``list_ids() -> Iterator[str]``: every ``doc_id`` the source has right now, without
+      loading content. Used for deletion checks, and to find items ``poll`` could not see.
+    * ``volatile_extra: frozenset[str]``: ``RawDoc.extra`` keys that change without the item
+      changing (a file's mtime); left out of the doc hash.
     """
 
     name: str
@@ -58,7 +65,9 @@ class Connector(Protocol):
 
 
 class PollingConnector(Connector, Protocol):
-    def poll(self, since: datetime) -> Iterator[RawDoc | ConnectorFailure]: ...
+    def poll(
+        self, since: datetime, until: datetime | None = None
+    ) -> Iterator[RawDoc | ConnectorFailure]: ...
 
 
 class ListingConnector(Connector, Protocol):

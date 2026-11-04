@@ -21,20 +21,38 @@ class InMemoryStore:
     def __init__(self) -> None:
         self.docs: dict[str, RawDoc] = {}
         self.chunks: dict[str, Chunk] = {}
+        self.hashes: dict[str, str | None] = {}
+        self.cursors: dict[str, dict[str, Any]] = {}
 
-    def upsert(self, doc: RawDoc, chunks: list[Chunk]) -> None:
+    def upsert(self, doc: RawDoc, chunks: list[Chunk], *, content_hash: str | None = None) -> None:
         for c in chunks:
             if c.embedding is None:
                 raise ValueError(f"chunk {c.chunk_id} has no embedding")
         self.delete_doc(doc.doc_id)
         self.docs[doc.doc_id] = doc
+        self.hashes[doc.doc_id] = content_hash
         for c in chunks:
             self.chunks[c.chunk_id] = c
 
     def delete_doc(self, doc_id: str) -> None:
         self.docs.pop(doc_id, None)
+        self.hashes.pop(doc_id, None)
         for cid in [cid for cid, c in self.chunks.items() if c.doc_id == doc_id]:
             del self.chunks[cid]
+
+    # --- sync (hackstack.sync.manager.SyncStore) ----------------------------------------------
+
+    def doc_hashes(self, source: str) -> dict[str, str | None]:
+        return {d: self.hashes.get(d) for d, doc in self.docs.items() if doc.source == source}
+
+    def get_cursor(self, connector: str) -> dict[str, Any] | None:
+        return dict(self.cursors[connector]) if connector in self.cursors else None
+
+    def set_cursor(self, connector: str, cursor: dict[str, Any]) -> None:
+        self.cursors[connector] = dict(cursor)
+
+    def chunk_embeddings(self, doc_id: str) -> list[tuple[str, list[float]]]:
+        return [(c.embed_text, c.embedding) for c in self.chunks.values() if c.doc_id == doc_id]
 
     def _visible(self, principals: list[str], filters: dict[str, Any] | None) -> list[Chunk]:
         allowed = set(principals)
