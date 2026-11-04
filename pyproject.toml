@@ -12,6 +12,7 @@ dependencies = [
     "httpx>=0.28.1",
     "markitdown[docx]>=0.1.9",
     "mcp>=1.27,<2",
+    "opentelemetry-api>=1.30",
     "psycopg-pool>=3.2",
     "psycopg[binary]>=3.2",
     "pydantic>=2.9",
@@ -29,12 +30,17 @@ rerank = [
     "sentence-transformers>=5.0",
     "torch>=2.5",
 ]
+tracing = [
+    "opentelemetry-exporter-otlp-proto-http>=1.30",
+    "opentelemetry-sdk>=1.30",
+]
 
 [project.scripts]
 hackstack = "hackstack.cli:app"
 
 [dependency-groups]
 dev = [
+    "opentelemetry-sdk>=1.30",
     "pytest>=8.3",
     "ruff>=0.7",
 ]

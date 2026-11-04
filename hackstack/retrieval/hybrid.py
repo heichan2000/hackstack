@@ -21,6 +21,10 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
+from opentelemetry.trace import SpanKind
+
+from hackstack import semconv as sc
+from hackstack import tracing
 from hackstack.models import SearchHit
 
 if TYPE_CHECKING:
@@ -161,24 +165,81 @@ class HybridRetriever:
         *,
         top_n: int | None = None,
     ) -> RetrievalResult:
-        """Run every stage and keep each one's output."""
+        """Run every stage and keep each one's output (each stage is a span when tracing)."""
+        n = self.top_n if top_n is None else top_n
+        attrs = {
+            sc.OPERATION_NAME: sc.OP_RETRIEVAL,
+            sc.OI_SPAN_KIND: sc.KIND_RETRIEVER,
+            sc.DATA_SOURCE_ID: getattr(self.store, "name", None) or type(self.store).__name__,
+            sc.HS_PRINCIPALS: len(principals),
+            sc.HS_FILTERS: tuple(sorted(k for k, v in (filters or {}).items() if v)),
+            sc.HS_TOP_N: n,
+        }
+        with tracing.span(sc.SPAN_RETRIEVAL, attrs) as span:
+            tracing.content(span, sc.RETRIEVAL_QUERY_TEXT, query)
+            result = self._retrieve(query, principals, filters, n)
+            span.set_attribute(sc.RETRIEVAL_DOCUMENTS, tracing.documents(result.hits))
+            span.set_attribute(sc.HS_OUTPUT_COUNT, len(result.hits))
+            return result
+
+    def _retrieve(
+        self, query: str, principals: list[str], filters: dict[str, Any] | None, n: int
+    ) -> RetrievalResult:
         result = RetrievalResult(query=query)
         if not principals or not query.strip():
             return result  # fail closed, and do not pay for an embedding
         w_dense, w_lexical = self.weights
         if w_dense > 0:
-            qvec = self.embedder.embed_query(query)
-            result.dense = self.store.dense(qvec, principals, filters, self.window)
+            model = getattr(self.embedder, "model", None)
+            with tracing.span(
+                f"{sc.SPAN_EMBEDDINGS} {model}" if model else sc.SPAN_EMBEDDINGS,
+                {
+                    sc.OPERATION_NAME: sc.OP_EMBEDDINGS,
+                    sc.OI_SPAN_KIND: sc.KIND_EMBEDDING,
+                    sc.REQUEST_MODEL: model,
+                    **tracing.server_attributes(getattr(self.embedder, "base_url", None)),
+                },
+                kind=SpanKind.CLIENT,
+            ) as span:
+                qvec = self.embedder.embed_query(query)
+                span.set_attribute(sc.EMBEDDING_DIMENSIONS, len(qvec))
+            with _stage(sc.SPAN_DENSE, {sc.HS_WINDOW: self.window}) as span:
+                result.dense = self.store.dense(qvec, principals, filters, self.window)
+                span.set_attribute(sc.HS_OUTPUT_COUNT, len(result.dense))
         if w_lexical > 0:
-            result.lexical = self.store.lexical(query, principals, filters, self.window)
-        result.fused = fuse(result.dense, result.lexical, k=self.k, weights=self.weights)
-        n = self.top_n if top_n is None else top_n
-        result.reranked = self.reranker.rerank(query, result.fused[: self.rerank_window], n)
-        result.hits = (
-            self.expander.expand(result.reranked, principals)
-            if self.expander is not None
-            else list(result.reranked)
-        )
+            with _stage(sc.SPAN_LEXICAL, {sc.HS_WINDOW: self.window}) as span:
+                result.lexical = self.store.lexical(query, principals, filters, self.window)
+                span.set_attribute(sc.HS_OUTPUT_COUNT, len(result.lexical))
+        with _stage(
+            sc.SPAN_RRF,
+            {sc.HS_RRF_K: self.k, sc.HS_INPUT_COUNT: len(result.dense) + len(result.lexical)},
+        ) as span:
+            result.fused = fuse(result.dense, result.lexical, k=self.k, weights=self.weights)
+            span.set_attribute(sc.HS_OUTPUT_COUNT, len(result.fused))
+        shortlist = result.fused[: self.rerank_window]
+        with _stage(
+            sc.SPAN_RERANK,
+            {
+                sc.OI_SPAN_KIND: sc.KIND_RERANKER,
+                sc.HS_RERANK_MODEL: getattr(self.reranker, "model", None),
+                sc.HS_INPUT_COUNT: len(shortlist),
+                sc.HS_TOP_N: n,
+            },
+        ) as span:
+            result.reranked = self.reranker.rerank(query, shortlist, n)
+            span.set_attribute(sc.HS_OUTPUT_COUNT, len(result.reranked))
+        if self.expander is not None:
+            with _stage(
+                sc.SPAN_EXPAND,
+                {
+                    sc.HS_EXPAND_RADIUS: getattr(self.expander, "radius", None),
+                    sc.HS_INPUT_COUNT: len(result.reranked),
+                },
+            ) as span:
+                result.hits = self.expander.expand(result.reranked, principals)
+                span.set_attribute(sc.HS_OUTPUT_COUNT, len(result.hits))
+        else:
+            result.hits = list(result.reranked)
         return result
 
     def search(
@@ -191,3 +252,8 @@ class HybridRetriever:
     ) -> list[SearchHit]:
         """The final hits: fused, reranked and expanded, all under ``principals``."""
         return self.retrieve(query, principals, filters, top_n=top_n).hits
+
+
+def _stage(name: str, attrs: dict[str, Any]) -> Any:
+    """A retrieval stage span (a ``CHAIN`` unless ``attrs`` say otherwise)."""
+    return tracing.span(name, {sc.OI_SPAN_KIND: sc.KIND_CHAIN, **attrs})

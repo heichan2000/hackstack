@@ -95,7 +95,11 @@ async def chat(body: ChatRequest, request: Request) -> StreamingResponse:
                 )[:-1]
                 encoder = SSEEncoder(conversation_id, sent)
                 async for event in agent.stream(
-                    body.message, user=user, history=sent, mode=body.mode
+                    body.message,
+                    user=user,
+                    history=sent,
+                    mode=body.mode,
+                    conversation_id=conversation_id,
                 ):
                     if isinstance(event, AgentDone):
                         new = event.result.messages[len(sent) :]

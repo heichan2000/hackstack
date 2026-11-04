@@ -9,7 +9,7 @@ help:
 
 ## Install Python (uv) and web (npm) dependencies; the rerank extra is the local cross-encoder
 setup:
-	uv sync --extra rerank
+	uv sync --extra rerank --extra tracing
 ifneq ($(wildcard web/package.json),)
 	npm --prefix web install
 endif

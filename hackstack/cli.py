@@ -199,6 +199,9 @@ def search(
             raise ValueError("no --as user and the app has no default_user")
         principals = resolve_principals(settings, user, apps_dir=apps_dir)
         filters = {"source": source or None, "since": since}
+        from hackstack.tracing import setup_tracing
+
+        setup_tracing(settings)  # no-op unless tracing.enabled
         result = HybridRetriever.from_settings(settings).retrieve(
             query, principals, filters, top_n=top_n
         )

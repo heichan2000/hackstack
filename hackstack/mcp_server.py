@@ -105,7 +105,9 @@ class KBServer:
 
     def _default_retriever(self) -> Any:
         from hackstack.retrieval.hybrid import HybridRetriever
+        from hackstack.tracing import setup_tracing
 
+        setup_tracing(self.settings)  # no-op unless tracing.enabled; retrieval spans per call
         return HybridRetriever.from_settings(self.settings)
 
     @property

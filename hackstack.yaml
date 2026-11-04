@@ -51,9 +51,12 @@ agent:
 api:
   cors_origins: [http://localhost:3000, http://127.0.0.1:3000]
 
+# OTel spans per stage (hackstack/tracing.py). Phoenix: COMPOSE_PROFILES=tracing make up, then
+# enabled: true (or HACKSTACK_TRACING__ENABLED=true) and open http://localhost:6006.
 tracing:
   enabled: false
   endpoint: http://localhost:6006/v1/traces
+  project: hackstack
 
 # Connector configs come from the active app's app.yaml (apps/<app>/app.yaml). Anything set here
 # overrides the app's, key by key, e.g. connectors: {local_files: {path: ./my_docs}}.

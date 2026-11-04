@@ -121,7 +121,8 @@ class ApiSettings(_Section):
 
 class TracingSettings(_Section):
     enabled: bool = False
-    endpoint: str = "http://localhost:6006/v1/traces"
+    endpoint: str = "http://localhost:6006/v1/traces"  # OTLP/HTTP; Phoenix's is on :6006
+    project: str = "hackstack"  # the Phoenix project traces land in
     capture_content: bool = False  # true only locally: spans would carry PII
 
 
@@ -201,6 +202,7 @@ class Secrets(BaseSettings):
     slack_bot_token: SecretStr | None = None
     google_client_secrets_file: str | None = None
     google_token_file: str | None = None
+    phoenix_api_key: SecretStr | None = None  # only for a Phoenix with auth on
 
 
 def load_settings(

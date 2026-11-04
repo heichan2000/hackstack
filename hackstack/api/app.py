@@ -45,6 +45,9 @@ def create_app(
     apps_dir: str | Path = DEFAULT_APPS_DIR,
 ) -> FastAPI:
     settings = settings if settings is not None else load_settings()
+    from hackstack.tracing import setup_tracing
+
+    setup_tracing(settings)  # no-op unless tracing.enabled
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):

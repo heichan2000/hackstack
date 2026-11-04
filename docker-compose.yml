@@ -20,9 +20,20 @@ services:
   phoenix:
     image: arizephoenix/phoenix:latest
     profiles: [tracing]
-    ports:
-      - "6006:6006" # UI + OTLP/HTTP (/v1/traces)
-      - "4317:4317" # OTLP/gRPC
+    ports: # loopback only: auth is off for local dev
+      - "127.0.0.1:6006:6006" # UI + OTLP/HTTP (/v1/traces)
+      - "127.0.0.1:4317:4317" # OTLP/gRPC
+    environment:
+      # Phoenix defaults to SQLite in a temp dir; keep traces in a named volume instead.
+      PHOENIX_WORKING_DIR: /mnt/phoenix
+      # Phoenix 21 turns auth on by default. A local dev collector on loopback does without it
+      # (with auth on, set PHOENIX_API_KEY in .env and the exporter sends it).
+      PHOENIX_ENABLE_AUTH: "false"
+      PHOENIX_DISABLE_AGENT_ASSISTANT: "true" # no in-app agent (it can run bash) without auth
+      PHOENIX_TELEMETRY_ENABLED: "false"
+    volumes:
+      - phoenixdata:/mnt/phoenix
 
 volumes:
   pgdata:
+  phoenixdata:

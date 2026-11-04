@@ -48,6 +48,8 @@ _OPENAI_ONLY = {"seed", "temperature", "top_p", "presence_penalty", "frequency_p
 
 @register(LLM, "anthropic")
 class AnthropicProvider:
+    provider_name = "anthropic"  # gen_ai.provider.name on trace spans
+
     def __init__(
         self,
         *,
@@ -61,6 +63,7 @@ class AnthropicProvider:
         http_client: httpx2.AsyncClient | None = None,
     ) -> None:
         self.model = model
+        self.base_url = base_url
         self.max_tokens = max_tokens
         self.reasoning_effort = reasoning_effort
         # Only the Claude API itself knows `fallbacks`; a custom base_url (Ollama, a proxy) gets

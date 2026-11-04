@@ -16,6 +16,8 @@ from datetime import date
 from pathlib import Path
 from typing import Any, Literal
 
+from hackstack import semconv as sc
+from hackstack import tracing
 from hackstack.agent.citations import CitationRegistry
 from hackstack.agent.loop import AgentResult, collect, stream_agent, stream_single_shot
 from hackstack.agent.tools import CORE_TOOLS, Tool, ToolContext, load_tools
@@ -63,6 +65,7 @@ class Agent:
     ) -> Agent:
         from hackstack.llm import make_llm
 
+        tracing.setup_tracing(settings)  # no-op unless tracing.enabled
         app = load_app(settings, apps_dir=apps_dir) if _has_app(settings, apps_dir) else None
         if retriever is None:
             from hackstack.retrieval.hybrid import HybridRetriever
@@ -89,6 +92,7 @@ class Agent:
         """Stop the external MCP servers (if any). The agent's MCP tools stop working."""
         if self.mcp is not None:
             self.mcp.close()
+        tracing.force_flush()
 
     @property
     def default_user(self) -> str | None:
@@ -126,16 +130,23 @@ class Agent:
         user: str,
         history: list[dict[str, Any]] | None = None,
         mode: Mode | None = None,
+        conversation_id: str | None = None,
     ) -> AsyncIterator[Any]:
         """Events for one turn: ``question`` appended to ``history`` (or ``history`` as is)."""
         messages = list(history or [])
+        trace_attrs = {sc.AGENT_NAME: self.settings.app, sc.CONVERSATION_ID: conversation_id}
         if question is not None:
             messages.append({"role": "user", "content": question})
         ctx = self.context(user, messages)
         system = self.system_prompt(user)
         if (mode or self.settings.agent.mode) == "single_shot":
             return stream_single_shot(
-                self.llm, system=system, messages=messages, ctx=ctx, llm_opts=self.llm_opts
+                self.llm,
+                system=system,
+                messages=messages,
+                ctx=ctx,
+                llm_opts=self.llm_opts,
+                trace_attrs=trace_attrs,
             )
         return stream_agent(
             self.llm,
@@ -145,6 +156,7 @@ class Agent:
             ctx=ctx,
             max_iterations=self.settings.agent.max_iterations,
             llm_opts=self.llm_opts,
+            trace_attrs=trace_attrs,
         )
 
     async def ask(

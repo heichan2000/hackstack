@@ -42,6 +42,8 @@ _TIMEOUT = httpx2.Timeout(300.0, connect=10.0)  # a cold local model can take a 
 
 @register(LLM, "openai_compat")
 class OpenAICompatProvider:
+    provider_name = "openai"  # gen_ai.provider.name: the API flavour (Ollama, vLLM, ... speak it)
+
     def __init__(
         self,
         *,
